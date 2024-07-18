@@ -13,7 +13,6 @@ export const useSidebarState = create(
     (set, get) => ({
       isOpen: true,
       switchOpen: () => {
-        console.log("switch open", !get().isOpen);
         set({ ...get(), isOpen: !get().isOpen });
       },
       width: 240,

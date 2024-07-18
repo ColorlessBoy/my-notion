@@ -1,3 +1,4 @@
+"use client";
 import React, { forwardRef } from "react";
 
 import { Action, ActionProps } from "./Action";
@@ -7,7 +8,7 @@ export const Handle = forwardRef<HTMLButtonElement, ActionProps>(
   (props, ref) => {
     return (
       <Action ref={ref} className="cursor-grab" {...props}>
-        <GripVertical className="w-auto h-auto bg-transparent text-gray-500" />
+        <GripVertical className="w-auto h-auto bg-transparent text-gray-400" />
       </Action>
     );
   }

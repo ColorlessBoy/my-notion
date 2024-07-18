@@ -1,5 +1,7 @@
+"use client";
 import type { UniqueIdentifier } from "@dnd-kit/core";
 import { arrayMove } from "@dnd-kit/sortable";
+import { v4 as uuid } from "uuid";
 
 import type { FlattenedItem, TreeItem, TreeItems } from "./types";
 
@@ -134,6 +136,25 @@ export function findItemDeep(
   }
 
   return undefined;
+}
+
+export function createNewChild(items: TreeItems, id: UniqueIdentifier) {
+  console.log("createNewChild", { items, id });
+  const newItems = [];
+  for (const item of items) {
+    const newItem = { ...item, children: [...item.children] };
+    if (newItem.id === id) {
+      newItem.children.push({
+        id: uuid(),
+        children: [],
+      });
+    } else if (newItem.children.length > 0) {
+      newItem.children = createNewChild(newItem.children, id);
+    }
+    newItems.push(newItem);
+  }
+  console.log({ newItems });
+  return newItems;
 }
 
 export function removeItem(items: TreeItems, id: UniqueIdentifier) {

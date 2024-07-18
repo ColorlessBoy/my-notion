@@ -76,17 +76,6 @@ const treeItems: Item[] = [
 export default function Home() {
   const sidebarState = useStore(useSidebarState, (state) => state);
   const mouseMoveDivRef = useRef<HTMLDivElement>(null);
-  const callback = (event: MouseEvent) => {
-    if (mouseMoveDivRef.current) {
-      mouseMoveDivRef.current.innerText = `(${event.screenX}, ${event.screenY})`;
-    }
-  };
-  useEffect(() => {
-    document.addEventListener("mousemove", callback);
-    return () => {
-      document.removeEventListener("mousemove", callback);
-    };
-  }, []);
   return (
     <>
       <Sidebar />
@@ -100,7 +89,7 @@ export default function Home() {
             switchOpen={sidebarState.switchOpen}
           />
           <div className="w-[350px] w-max-[100%] p-2 mx-auto mb-0 mt-[10%]">
-            <SortableTree collapsible indicator removable />
+            <SortableTree collapsible indicator creatable removable />
           </div>
         </div>
       </main>

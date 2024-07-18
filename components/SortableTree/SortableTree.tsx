@@ -1,3 +1,4 @@
+"use client";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import {
@@ -34,11 +35,12 @@ import {
   removeItem,
   removeChildrenOf,
   setProperty,
+  createNewChild,
 } from "./utilities";
 import type { FlattenedItem, SensorContext, TreeItems } from "./types";
 import { sortableTreeKeyboardCoordinates } from "./keyboardCoordinates";
-import { SortableTreeItem } from "./components";
 import { CSS } from "@dnd-kit/utilities";
+import { SortableTreeItem } from "./TreeItem";
 
 const initialItems: TreeItems = [
   {
@@ -101,6 +103,7 @@ interface Props {
   defaultItems?: TreeItems;
   indentationWidth?: number;
   indicator?: boolean;
+  creatable?: boolean;
   removable?: boolean;
 }
 
@@ -108,9 +111,11 @@ export function SortableTree({
   collapsible,
   defaultItems = initialItems,
   indicator = false,
-  indentationWidth = 24,
+  indentationWidth = 16,
+  creatable,
   removable,
 }: Props) {
+  const [isMounted, setMounted] = useState(false);
   const [items, setItems] = useState(() => defaultItems);
   const [activeId, setActiveId] = useState<UniqueIdentifier | null>(null);
   const [overId, setOverId] = useState<UniqueIdentifier | null>(null);
@@ -122,13 +127,11 @@ export function SortableTree({
 
   const flattenedItems = useMemo(() => {
     const flattenedTree = flattenTree(items);
-    console.log({ flattenedTree });
     const collapsedItems = flattenedTree.reduce<UniqueIdentifier[]>(
       (acc, { children, collapsed, id }) =>
         collapsed && children.length ? [...acc, id] : acc,
       []
     );
-    console.log({ collapsedItems });
 
     return removeChildrenOf(
       flattenedTree,
@@ -169,6 +172,10 @@ export function SortableTree({
     : null;
 
   useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
     sensorContext.current = {
       items: flattenedItems,
       offset: offsetLeft,
@@ -192,9 +199,13 @@ export function SortableTree({
       return `Moving was cancelled. ${active.id} was dropped in its original position.`;
     },
   };
+  if (!isMounted) {
+    return null;
+  }
 
   return (
     <DndContext
+      id="unique-dnd-kit-id"
       accessibility={{ announcements }}
       sensors={sensors}
       collisionDetection={closestCenter}
@@ -218,6 +229,13 @@ export function SortableTree({
             onCollapse={
               collapsible && children.length
                 ? () => handleCollapse(id)
+                : undefined
+            }
+            onCreate={
+              creatable
+                ? () => {
+                    handleCreateNewChild(id);
+                  }
                 : undefined
             }
             onRemove={removable ? () => handleRemove(id) : undefined}
@@ -304,6 +322,11 @@ export function SortableTree({
     document.body.style.setProperty("cursor", "");
   }
 
+  function handleCreateNewChild(id: UniqueIdentifier) {
+    console.log("handleCreateNewChild", items);
+    setItems((items) => createNewChild(items, id));
+  }
+
   function handleRemove(id: UniqueIdentifier) {
     setItems((items) => removeItem(items, id));
   }
@@ -313,7 +336,6 @@ export function SortableTree({
     setProperty(newItems, id, "collapsed", (value) => {
       return !value;
     });
-    console.log(newItems);
     setItems(newItems);
   }
 

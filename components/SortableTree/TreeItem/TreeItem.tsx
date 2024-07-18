@@ -1,3 +1,4 @@
+"use client";
 import { forwardRef, HTMLAttributes, useState } from "react";
 
 import styles from "./TreeItem.module.css";
@@ -6,6 +7,7 @@ import { Handle } from "./Handle";
 import { Delete } from "./Delete";
 import { Collapse } from "./Collapse";
 import { UniqueIdentifier } from "@dnd-kit/core";
+import { Create } from "./Create";
 
 export interface Props extends Omit<HTMLAttributes<HTMLLIElement>, "id"> {
   childCount?: number;
@@ -20,6 +22,7 @@ export interface Props extends Omit<HTMLAttributes<HTMLLIElement>, "id"> {
   indentationWidth: number;
   value: UniqueIdentifier;
   onCollapse?(): void;
+  onCreate?(): void;
   onRemove?(): void;
   wrapperRef?(node: HTMLLIElement): void;
 }
@@ -38,6 +41,7 @@ export const TreeItem = forwardRef<HTMLDivElement, Props>(
       indicator,
       collapsed,
       onCollapse,
+      onCreate,
       onRemove,
       style,
       value,
@@ -72,10 +76,7 @@ export const TreeItem = forwardRef<HTMLDivElement, Props>(
         <div className={cn(styles.TreeItem)} ref={ref} style={style}>
           {onCollapse && (
             <Collapse
-              onClick={() => {
-                onCollapse();
-                console.log("collapse", collapsed);
-              }}
+              onClick={onCollapse}
               collapsed={collapsed}
               className={cn(ghost && "opacity-0 h-0")}
             />
@@ -84,7 +85,16 @@ export const TreeItem = forwardRef<HTMLDivElement, Props>(
           {!clone && onRemove && (
             <Delete onClick={onRemove} showTool={showTools} />
           )}
-          <Handle {...handleProps} showTool={showTools} />
+          {!clone && onCreate && (
+            <Create
+              onClick={() => {
+                console.log("click onCreate");
+                onCreate();
+              }}
+              showTool={showTools}
+            />
+          )}
+          {!clone && <Handle {...handleProps} showTool={showTools} />}
           {clone && childCount && childCount > 1 ? (
             <span className={cn(styles.Count)}>{childCount}</span>
           ) : null}
