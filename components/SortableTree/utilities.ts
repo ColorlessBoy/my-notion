@@ -3,7 +3,7 @@ import type { UniqueIdentifier } from "@dnd-kit/core";
 import { arrayMove } from "@dnd-kit/sortable";
 import { v4 as uuid } from "uuid";
 
-import type { FlattenedItem, TreeItem, TreeItems } from "./types";
+import type { FlattenedItem, TreeItem } from "./types";
 
 function getDragDepth(offset: number, indentationWidth: number) {
   return Math.round(offset / indentationWidth);
@@ -77,7 +77,7 @@ function getMinDepth({ nextItem }: { nextItem: FlattenedItem }) {
 }
 
 function flatten(
-  items: TreeItems,
+  items: TreeItem[],
   parentId: UniqueIdentifier | null = null,
   depth = 0
 ): FlattenedItem[] {
@@ -90,21 +90,21 @@ function flatten(
   }, []);
 }
 
-export function flattenTree(items: TreeItems): FlattenedItem[] {
+export function flattenTree(items: TreeItem[]): FlattenedItem[] {
   return flatten(items);
 }
 
-export function buildTree(flattenedItems: FlattenedItem[]): TreeItems {
-  const root: TreeItem = { id: "root", children: [] };
+export function buildTree(flattenedItems: FlattenedItem[]): TreeItem[] {
+  const root: TreeItem = { id: "#root", title: "#root", children: [] };
   const nodes: Record<string, TreeItem> = { [root.id]: root };
   const items = flattenedItems.map((item) => ({ ...item, children: [] }));
 
   for (const item of items) {
-    const { id, children } = item;
+    const { id, title, children } = item;
     const parentId = item.parentId ?? root.id;
     const parent = nodes[parentId] ?? findItem(items, parentId);
 
-    nodes[id] = { id, children };
+    nodes[id] = { id, title, children };
     parent.children.push(item);
   }
 
@@ -116,7 +116,7 @@ export function findItem(items: TreeItem[], itemId: UniqueIdentifier) {
 }
 
 export function findItemDeep(
-  items: TreeItems,
+  items: TreeItem[],
   itemId: UniqueIdentifier
 ): TreeItem | undefined {
   for (const item of items) {
@@ -138,8 +138,7 @@ export function findItemDeep(
   return undefined;
 }
 
-export function createNewChild(items: TreeItems, id: UniqueIdentifier) {
-  console.log("createNewChild", { items, id });
+export function createNewChild(items: TreeItem[], id: UniqueIdentifier) {
   const newItems = [];
   for (const item of items) {
     const newItem = { ...item, children: [...item.children] };
@@ -147,17 +146,17 @@ export function createNewChild(items: TreeItems, id: UniqueIdentifier) {
       newItem.children.push({
         id: uuid(),
         children: [],
+        title: "",
       });
     } else if (newItem.children.length > 0) {
       newItem.children = createNewChild(newItem.children, id);
     }
     newItems.push(newItem);
   }
-  console.log({ newItems });
   return newItems;
 }
 
-export function removeItem(items: TreeItems, id: UniqueIdentifier) {
+export function removeItem(items: TreeItem[], id: UniqueIdentifier) {
   const newItems = [];
 
   for (const item of items) {
@@ -176,7 +175,7 @@ export function removeItem(items: TreeItems, id: UniqueIdentifier) {
 }
 
 export function setProperty<T extends keyof TreeItem>(
-  items: TreeItems,
+  items: TreeItem[],
   id: UniqueIdentifier,
   property: T,
   setter: (value: TreeItem[T]) => TreeItem[T]
@@ -205,7 +204,7 @@ function countChildren(items: TreeItem[], count = 0): number {
   }, count);
 }
 
-export function getChildCount(items: TreeItems, id: UniqueIdentifier) {
+export function getChildCount(items: TreeItem[], id: UniqueIdentifier) {
   const item = findItemDeep(items, id);
 
   return item ? countChildren(item.children) : 0;

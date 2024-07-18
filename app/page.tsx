@@ -3,73 +3,40 @@ import { Item } from "@/components/DraggableTree/types";
 import Sidebar from "@/components/Sidebar";
 import SidebarToggle from "@/components/Sidebar/SidebarToggle";
 import { SortableTree } from "@/components/SortableTree";
+import { TreeItem } from "@/components/SortableTree/types";
 import { useSidebarState } from "@/hooks/useSidebarToggle";
 import { useEffect, useRef } from "react";
 import { useStore } from "zustand";
+import { v4 as uuid } from "uuid";
 
-const treeItems: Item[] = [
+const initialItems: TreeItem[] = [
   {
-    id: "1",
-    title: "1",
-    index: 0,
-    level: 0,
-    isOpen: true,
+    id: uuid(),
+    title: "Home",
+    children: [],
   },
   {
-    id: "1.1",
-    title: "1.1",
-    index: 1,
-    level: 1,
-    isOpen: true,
+    id: uuid(),
+    title: "Collections",
+    children: [
+      { id: uuid(), title: "Spring", children: [] },
+      { id: uuid(), title: "Summer", children: [] },
+      { id: uuid(), title: "Fall", children: [] },
+      { id: uuid(), title: "Winter", children: [] },
+    ],
   },
   {
-    id: "1.2",
-    title: "1.2",
-    index: 2,
-    level: 1,
-    isOpen: true,
+    id: uuid(),
+    title: "About Us",
+    children: [],
   },
   {
-    id: "2",
-    title: "2",
-    index: 3,
-    level: 0,
-    isOpen: true,
-  },
-  {
-    id: "2.1",
-    title: "2.1",
-    index: 4,
-    level: 1,
-    isOpen: true,
-  },
-  {
-    id: "2.2",
-    title: "2.2",
-    index: 5,
-    level: 1,
-    isOpen: true,
-  },
-  {
-    id: "3",
-    title: "3",
-    index: 6,
-    level: 0,
-    isOpen: true,
-  },
-  {
-    id: "3.1",
-    title: "3.1",
-    index: 7,
-    level: 1,
-    isOpen: true,
-  },
-  {
-    id: "3.2",
-    title: "3.2",
-    index: 8,
-    level: 1,
-    isOpen: true,
+    id: uuid(),
+    title: "My Account",
+    children: [
+      { id: uuid(), title: "Addresses", children: [] },
+      { id: uuid(), title: "Order History", children: [] },
+    ],
   },
 ];
 
@@ -89,7 +56,14 @@ export default function Home() {
             switchOpen={sidebarState.switchOpen}
           />
           <div className="w-[350px] w-max-[100%] p-2 mx-auto mb-0 mt-[10%]">
-            <SortableTree collapsible indicator creatable editable removable />
+            <SortableTree
+              initialItems={initialItems}
+              collapsible
+              indicator
+              creatable
+              editable
+              removable
+            />
           </div>
         </div>
       </main>

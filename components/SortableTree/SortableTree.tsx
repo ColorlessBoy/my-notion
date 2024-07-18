@@ -37,38 +37,10 @@ import {
   setProperty,
   createNewChild,
 } from "./utilities";
-import type { FlattenedItem, SensorContext, TreeItems } from "./types";
+import type { FlattenedItem, SensorContext, TreeItem } from "./types";
 import { sortableTreeKeyboardCoordinates } from "./keyboardCoordinates";
 import { CSS } from "@dnd-kit/utilities";
 import { SortableTreeItem } from "./TreeItem";
-import { Handle } from "./TreeItem/Handle";
-
-const initialItems: TreeItems = [
-  {
-    id: "Home",
-    children: [],
-  },
-  {
-    id: "Collections",
-    children: [
-      { id: "Spring", children: [] },
-      { id: "Summer", children: [] },
-      { id: "Fall", children: [] },
-      { id: "Winter", children: [] },
-    ],
-  },
-  {
-    id: "About Us",
-    children: [],
-  },
-  {
-    id: "My Account",
-    children: [
-      { id: "Addresses", children: [] },
-      { id: "Order History", children: [] },
-    ],
-  },
-];
 
 const measuring = {
   droppable: {
@@ -100,26 +72,26 @@ const dropAnimationConfig: DropAnimation = {
 };
 
 interface Props {
+  initialItems: TreeItem[];
   collapsible?: boolean;
-  defaultItems?: TreeItems;
-  indentationWidth?: number;
   indicator?: boolean;
   creatable?: boolean;
   editable?: boolean;
   removable?: boolean;
+  indentationWidth?: number;
 }
 
 export function SortableTree({
+  initialItems,
   collapsible,
-  defaultItems = initialItems,
   indicator = false,
-  indentationWidth = 16,
   creatable,
   editable,
   removable,
+  indentationWidth = 16,
 }: Props) {
   const [isMounted, setMounted] = useState(false);
-  const [items, setItems] = useState(() => defaultItems);
+  const [items, setItems] = useState(() => initialItems);
   const [activeId, setActiveId] = useState<UniqueIdentifier | null>(null);
   const [overId, setOverId] = useState<UniqueIdentifier | null>(null);
   const [offsetLeft, setOffsetLeft] = useState(0);
@@ -208,7 +180,6 @@ export function SortableTree({
 
   return (
     <DndContext
-      id="unique-dnd-kit-id"
       accessibility={{ announcements }}
       sensors={sensors}
       collisionDetection={closestCenter}
@@ -220,11 +191,11 @@ export function SortableTree({
       onDragCancel={handleDragCancel}
     >
       <SortableContext items={sortedIds} strategy={verticalListSortingStrategy}>
-        {flattenedItems.map(({ id, children, collapsed, depth }) => (
+        {flattenedItems.map(({ id, title, children, collapsed, depth }) => (
           <SortableTreeItem
             key={id}
             id={id}
-            value={id}
+            value={title}
             depth={id === activeId && projected ? projected.depth : depth}
             indentationWidth={indentationWidth}
             indicator={indicator}
@@ -244,7 +215,6 @@ export function SortableTree({
             onChangeTitle={
               editable
                 ? (newTitle: string) => {
-                    console.log("changeTitle");
                     handleUpdateTitle(id, newTitle);
                   }
                 : undefined
@@ -252,25 +222,24 @@ export function SortableTree({
             onRemove={removable ? () => handleRemove(id) : undefined}
           />
         ))}
-        {typeof window !== "undefined" &&
-          createPortal(
-            <DragOverlay
-              dropAnimation={dropAnimationConfig}
-              modifiers={indicator ? [adjustTranslate] : undefined}
-            >
-              {activeId && activeItem ? (
-                <SortableTreeItem
-                  id={activeId}
-                  depth={activeItem.depth}
-                  clone
-                  childCount={getChildCount(items, activeId) + 1}
-                  value={activeId.toString()}
-                  indentationWidth={indentationWidth}
-                />
-              ) : null}
-            </DragOverlay>,
-            document.body
-          )}
+        {createPortal(
+          <DragOverlay
+            dropAnimation={dropAnimationConfig}
+            modifiers={indicator ? [adjustTranslate] : undefined}
+          >
+            {activeId && activeItem ? (
+              <SortableTreeItem
+                id={activeId}
+                depth={activeItem.depth}
+                clone
+                childCount={getChildCount(items, activeId) + 1}
+                value={activeItem.title}
+                indentationWidth={indentationWidth}
+              />
+            ) : null}
+          </DragOverlay>,
+          document.body
+        )}
       </SortableContext>
     </DndContext>
   );
@@ -334,13 +303,12 @@ export function SortableTree({
   }
 
   function handleCreateNewChild(id: UniqueIdentifier) {
-    console.log("handleCreateNewChild", items);
     setItems((items) => createNewChild(items, id));
   }
 
   function handleUpdateTitle(id: UniqueIdentifier, title: string) {
     const newItems = [...items];
-    setProperty(newItems, id, "id", (_) => {
+    setProperty(newItems, id, "title", (_) => {
       return title;
     });
     setItems(newItems);
