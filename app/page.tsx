@@ -1,8 +1,8 @@
 "use client";
-import DraggableTree from "@/components/DraggableTree/DraggableTree";
 import { Item } from "@/components/DraggableTree/types";
 import Sidebar from "@/components/Sidebar";
 import SidebarToggle from "@/components/Sidebar/SidebarToggle";
+import { SortableTree } from "@/components/SortableTree";
 import { useSidebarState } from "@/hooks/useSidebarToggle";
 import { useEffect, useRef } from "react";
 import { useStore } from "zustand";
@@ -91,7 +91,7 @@ export default function Home() {
     <>
       <Sidebar />
       <main className="flex-1 h-full overflow-y-auto items-center justify-center">
-        <div className="flex flex-col m-10">
+        <div className="flex flex-col">
           <h1 className="flex-row justify-center items-center m-2 p-2">
             Main Page
           </h1>
@@ -99,7 +99,9 @@ export default function Home() {
             isOpen={sidebarState.isOpen}
             switchOpen={sidebarState.switchOpen}
           />
-          <DraggableTree items={treeItems} className="w-[350px]" />
+          <div className="w-[350px] w-max-[100%] p-2 mx-auto mb-0 mt-[10%]">
+            <SortableTree collapsible indicator removable />
+          </div>
         </div>
       </main>
     </>
