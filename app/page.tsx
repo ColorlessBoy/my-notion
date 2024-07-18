@@ -89,7 +89,7 @@ export default function Home() {
             switchOpen={sidebarState.switchOpen}
           />
           <div className="w-[350px] w-max-[100%] p-2 mx-auto mb-0 mt-[10%]">
-            <SortableTree collapsible indicator creatable removable />
+            <SortableTree collapsible indicator creatable editable removable />
           </div>
         </div>
       </main>

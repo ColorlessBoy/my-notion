@@ -1,5 +1,11 @@
 "use client";
-import { forwardRef, HTMLAttributes, useState } from "react";
+import {
+  forwardRef,
+  HTMLAttributes,
+  KeyboardEventHandler,
+  MouseEventHandler,
+  useState,
+} from "react";
 
 import styles from "./TreeItem.module.css";
 import { cn } from "@/lib/utils";
@@ -22,6 +28,7 @@ export interface Props extends Omit<HTMLAttributes<HTMLLIElement>, "id"> {
   indentationWidth: number;
   value: UniqueIdentifier;
   onCollapse?(): void;
+  onChangeTitle?(newTitle: string): void;
   onCreate?(): void;
   onRemove?(): void;
   wrapperRef?(node: HTMLLIElement): void;
@@ -42,6 +49,7 @@ export const TreeItem = forwardRef<HTMLDivElement, Props>(
       collapsed,
       onCollapse,
       onCreate,
+      onChangeTitle,
       onRemove,
       style,
       value,
@@ -51,6 +59,37 @@ export const TreeItem = forwardRef<HTMLDivElement, Props>(
     ref
   ) => {
     const [showTools, setShowTools] = useState(false);
+    const [isEditing, setIsEditing] = useState(false);
+    const [title, setTitle] = useState<string>(value.toString());
+
+    const handleDoubleClick = () => {
+      if (onChangeTitle) {
+        setIsEditing(true);
+      }
+    };
+
+    const handleBlur = () => {
+      if (onChangeTitle) {
+        onChangeTitle(title);
+        setIsEditing(false);
+      }
+    };
+
+    const handleKeyDown: KeyboardEventHandler<HTMLInputElement> = (event) => {
+      if (onChangeTitle && event.key === "Enter") {
+        event.preventDefault();
+        onChangeTitle(title);
+        setIsEditing(false);
+      }
+    };
+
+    const handleLongPress: MouseEventHandler<HTMLDivElement> = (event) => {
+      if (onChangeTitle) {
+        event.preventDefault();
+        setIsEditing(true);
+      }
+    };
+
     return (
       <li
         className={cn(
@@ -73,7 +112,13 @@ export const TreeItem = forwardRef<HTMLDivElement, Props>(
           setShowTools(false);
         }}
       >
-        <div className={cn(styles.TreeItem)} ref={ref} style={style}>
+        <div
+          className={cn(styles.TreeItem)}
+          ref={ref}
+          style={style}
+          onDoubleClick={handleDoubleClick}
+          onContextMenu={handleLongPress}
+        >
           {onCollapse && (
             <Collapse
               onClick={onCollapse}
@@ -81,9 +126,20 @@ export const TreeItem = forwardRef<HTMLDivElement, Props>(
               className={cn(ghost && "opacity-0 h-0")}
             />
           )}
-          <span className={cn(styles.Text)}>{value}</span>
+          {isEditing ? (
+            <input
+              className={cn(styles.Input, "px-2 w-full")}
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              onBlur={handleBlur}
+              onKeyDown={handleKeyDown}
+              autoFocus
+            />
+          ) : (
+            <span className={cn(styles.Text)}>{value}</span>
+          )}
           {!clone && onRemove && (
-            <Delete onClick={onRemove} showTool={showTools} />
+            <Delete onClick={onRemove} showTool={showTools && !isEditing} />
           )}
           {!clone && onCreate && (
             <Create
@@ -91,10 +147,12 @@ export const TreeItem = forwardRef<HTMLDivElement, Props>(
                 console.log("click onCreate");
                 onCreate();
               }}
-              showTool={showTools}
+              showTool={showTools && !isEditing}
             />
           )}
-          {!clone && <Handle {...handleProps} showTool={showTools} />}
+          {!clone && (
+            <Handle {...handleProps} showTool={showTools && !isEditing} />
+          )}
           {clone && childCount && childCount > 1 ? (
             <span className={cn(styles.Count)}>{childCount}</span>
           ) : null}

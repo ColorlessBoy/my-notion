@@ -41,6 +41,7 @@ import type { FlattenedItem, SensorContext, TreeItems } from "./types";
 import { sortableTreeKeyboardCoordinates } from "./keyboardCoordinates";
 import { CSS } from "@dnd-kit/utilities";
 import { SortableTreeItem } from "./TreeItem";
+import { Handle } from "./TreeItem/Handle";
 
 const initialItems: TreeItems = [
   {
@@ -104,6 +105,7 @@ interface Props {
   indentationWidth?: number;
   indicator?: boolean;
   creatable?: boolean;
+  editable?: boolean;
   removable?: boolean;
 }
 
@@ -113,6 +115,7 @@ export function SortableTree({
   indicator = false,
   indentationWidth = 16,
   creatable,
+  editable,
   removable,
 }: Props) {
   const [isMounted, setMounted] = useState(false);
@@ -238,6 +241,14 @@ export function SortableTree({
                   }
                 : undefined
             }
+            onChangeTitle={
+              editable
+                ? (newTitle: string) => {
+                    console.log("changeTitle");
+                    handleUpdateTitle(id, newTitle);
+                  }
+                : undefined
+            }
             onRemove={removable ? () => handleRemove(id) : undefined}
           />
         ))}
@@ -325,6 +336,14 @@ export function SortableTree({
   function handleCreateNewChild(id: UniqueIdentifier) {
     console.log("handleCreateNewChild", items);
     setItems((items) => createNewChild(items, id));
+  }
+
+  function handleUpdateTitle(id: UniqueIdentifier, title: string) {
+    const newItems = [...items];
+    setProperty(newItems, id, "id", (_) => {
+      return title;
+    });
+    setItems(newItems);
   }
 
   function handleRemove(id: UniqueIdentifier) {
