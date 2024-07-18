@@ -18,6 +18,7 @@ import {
   Modifier,
   defaultDropAnimation,
   UniqueIdentifier,
+  TouchSensor,
 } from "@dnd-kit/core";
 import {
   SortableContext,
@@ -107,7 +108,7 @@ export function SortableTree({
   collapsible,
   defaultItems = initialItems,
   indicator = false,
-  indentationWidth = 50,
+  indentationWidth = 24,
   removable,
 }: Props) {
   const [items, setItems] = useState(() => defaultItems);
@@ -152,6 +153,7 @@ export function SortableTree({
     sortableTreeKeyboardCoordinates(sensorContext, indicator, indentationWidth)
   );
   const sensors = useSensors(
+    useSensor(TouchSensor),
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, {
       coordinateGetter,

@@ -1,4 +1,4 @@
-import React, { forwardRef, HTMLAttributes } from "react";
+import { forwardRef, HTMLAttributes, useState } from "react";
 
 import styles from "./TreeItem.module.css";
 import { cn } from "@/lib/utils";
@@ -46,6 +46,7 @@ export const TreeItem = forwardRef<HTMLDivElement, Props>(
     },
     ref
   ) => {
+    const [showTools, setShowTools] = useState(false);
     return (
       <li
         className={cn(
@@ -63,9 +64,12 @@ export const TreeItem = forwardRef<HTMLDivElement, Props>(
           } as React.CSSProperties
         }
         {...props}
+        onMouseEnter={() => setShowTools(true)}
+        onMouseLeave={() => {
+          setShowTools(false);
+        }}
       >
         <div className={cn(styles.TreeItem)} ref={ref} style={style}>
-          <Handle {...handleProps} />
           {onCollapse && (
             <Collapse
               onClick={() => {
@@ -77,7 +81,10 @@ export const TreeItem = forwardRef<HTMLDivElement, Props>(
             />
           )}
           <span className={cn(styles.Text)}>{value}</span>
-          {!clone && onRemove && <Delete onClick={onRemove} />}
+          {!clone && onRemove && (
+            <Delete onClick={onRemove} showTool={showTools} />
+          )}
+          <Handle {...handleProps} showTool={showTools} />
           {clone && childCount && childCount > 1 ? (
             <span className={cn(styles.Count)}>{childCount}</span>
           ) : null}
