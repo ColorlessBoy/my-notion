@@ -82,6 +82,7 @@ export function SpaceList() {
           onChange={(newTitle: string) => {
             spacesContext?.updateSpace(space.id, newTitle);
           }}
+          openable
         />
       );
     });

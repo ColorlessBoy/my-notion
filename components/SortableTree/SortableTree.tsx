@@ -72,7 +72,8 @@ const dropAnimationConfig: DropAnimation = {
 };
 
 interface Props {
-  initialItems: TreeItem[];
+  items: TreeItem[];
+  setItems: (newItems: TreeItem[]) => void;
   collapsible?: boolean;
   indicator?: boolean;
   creatable?: boolean;
@@ -82,7 +83,8 @@ interface Props {
 }
 
 export function SortableTree({
-  initialItems,
+  items,
+  setItems,
   collapsible,
   indicator = false,
   creatable,
@@ -91,7 +93,6 @@ export function SortableTree({
   indentationWidth = 16,
 }: Props) {
   const [isMounted, setMounted] = useState(false);
-  const [items, setItems] = useState(() => initialItems);
   const [activeId, setActiveId] = useState<UniqueIdentifier | null>(null);
   const [overId, setOverId] = useState<UniqueIdentifier | null>(null);
   const [offsetLeft, setOffsetLeft] = useState(0);
@@ -303,7 +304,7 @@ export function SortableTree({
   }
 
   function handleCreateNewChild(id: UniqueIdentifier) {
-    setItems((items) => createNewChild(items, id));
+    setItems(createNewChild(items, id));
   }
 
   function handleUpdateTitle(id: UniqueIdentifier, title: string) {
@@ -315,7 +316,7 @@ export function SortableTree({
   }
 
   function handleRemove(id: UniqueIdentifier) {
-    setItems((items) => removeItem(items, id));
+    setItems(removeItem(items, id));
   }
 
   function handleCollapse(id: UniqueIdentifier) {

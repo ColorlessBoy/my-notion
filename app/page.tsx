@@ -1,3 +1,4 @@
+"use client";
 import MenuToggle from "@/components/MenuToggle";
 import { SidebarWrapper } from "@/components/Sidebar";
 import { SortableTree } from "@/components/SortableTree";
@@ -5,6 +6,7 @@ import { TreeItem } from "@/components/SortableTree/types";
 import { Button } from "@/components/ui/button";
 import { SPACE_URL } from "@/routes";
 import Link from "next/link";
+import { useState } from "react";
 import { v4 as uuid } from "uuid";
 
 const initialItems: TreeItem[] = [
@@ -39,6 +41,7 @@ const initialItems: TreeItem[] = [
 ];
 
 export default function Home() {
+  const [items, setItems] = useState<TreeItem[]>(initialItems);
   return (
     <>
       <SidebarWrapper>
@@ -61,7 +64,8 @@ export default function Home() {
           </h1>
           <div className="w-[350px] w-max-[100%] p-2 mx-auto mb-0 mt-[10%]">
             <SortableTree
-              initialItems={initialItems}
+              items={items}
+              setItems={setItems}
               collapsible
               indicator
               creatable

@@ -1,12 +1,20 @@
 "use client";
 
-import { BookIcon, Plus, Redo, Trash2, X } from "lucide-react";
+import { BookIcon, ChevronUp, Plus, Redo, X } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Space } from "@prisma/client";
 import { cn, stringToColor } from "@/lib/utils";
-import { KeyboardEventHandler, useState } from "react";
+import {
+  KeyboardEventHandler,
+  useEffect,
+  useState,
+  useTransition,
+} from "react";
 import { Button } from "../ui/button";
-import { SpaceCardEditableContent } from "@/app/spaces/_components/SpaceCard";
+import { SortableTree } from "../SortableTree";
+import { TreeItem } from "../SortableTree/types";
+import { createNewChild } from "../SortableTree/utilities";
+import * as db from "@/db";
 
 interface SidebarSpaceCardProps {
   space: Space;
@@ -17,6 +25,7 @@ interface SidebarSpaceCardProps {
   onRecover?: () => void;
   onChange?: (newTitle: string) => void;
   onCreate?: () => void;
+  openable?: boolean;
 }
 
 export function SidebarSpaceCard({
@@ -28,49 +37,103 @@ export function SidebarSpaceCard({
   onRecover,
   onChange,
   onCreate,
+  openable,
 }: SidebarSpaceCardProps) {
   const [showTool, setShowTool] = useState(false);
   const [isEditing, setEditing] = useState(false);
+  const [isOpen, setOpen] = useState(false);
+  const [items, setItems] = useState<TreeItem[]>([]);
+
+  const [isIniting, startInit] = useTransition();
+
+  useEffect(() => {
+    startInit(async () => {
+      const toc = await db.tableOfContent.$getLatest(space.id);
+      if (toc !== null && toc.content !== null) {
+        const newItems = JSON.parse(toc.content) as TreeItem[];
+        setItems(newItems);
+      }
+    });
+  }, []);
+
+  const setAndSaveItems = (newItems: TreeItem[]) => {
+    setItems(newItems);
+    db.tableOfContent.$create(space.id, JSON.stringify(items));
+  };
 
   return (
-    <div
-      className={cn(
-        "flex items-center pr-1 gap-x-1 hover:bg-gray-200 flex-nowrap",
-        className
-      )}
-      onMouseEnter={() => {
-        setShowTool(true);
-      }}
-      onMouseLeave={() => {
-        setShowTool(false);
-      }}
-    >
-      <BookIcon
-        className="w-7 h-7"
-        style={{ fill: stringToColor(space.title) }}
-      />
-      <SidebarEditContent
-        className={cn(isActive && "bg-gray-400")}
-        onChange={onChange}
-        value={space.title}
-        isEditing={isEditing}
-        setEditing={setEditing}
-      />
-      <div className="space-x-0 p-0 m-0">
-        {showTool && !isEditing && onTrash && (
-          <DeleteButton onDelete={onTrash} />
+    <>
+      <div
+        className={cn(
+          "flex items-center pr-1 gap-x-1 hover:bg-gray-200 flex-nowrap",
+          className
         )}
-        {showTool && !isEditing && onCreate && (
-          <CreateNewNoteButton onCreate={onCreate} />
-        )}
-        {showTool && !isEditing && onDelete && (
-          <DeleteButton onDelete={onDelete} />
-        )}
-        {showTool && !isEditing && onRecover && (
-          <RecoverButton onRecover={onRecover} />
+        onMouseEnter={() => {
+          setShowTool(true);
+        }}
+        onMouseLeave={() => {
+          setShowTool(false);
+        }}
+      >
+        <BookIcon
+          className="w-7 h-7"
+          style={{ fill: stringToColor(space.title) }}
+        />
+        <SidebarEditContent
+          className={cn(isActive && "bg-gray-400")}
+          onChange={onChange}
+          value={space.title}
+          isEditing={isEditing}
+          setEditing={setEditing}
+        />
+        <div className="flex-row space-x-0 p-0 m-0">
+          {showTool && !isEditing && onDelete && (
+            <DeleteButton onDelete={onDelete} />
+          )}
+          {showTool && !isEditing && onRecover && (
+            <RecoverButton onRecover={onRecover} />
+          )}
+          {showTool && !isEditing && onTrash && (
+            <DeleteButton onDelete={onTrash} />
+          )}
+          {showTool && !isEditing && (
+            <CreateNewNoteButton
+              onCreate={() => {
+                const newItems = createNewChild(items);
+                setItems(newItems);
+                setOpen(true);
+              }}
+            />
+          )}
+          {!isEditing && openable && (
+            <OpenButton
+              isOpen={isOpen}
+              setOpen={() => {
+                setOpen(!isOpen);
+              }}
+            />
+          )}
+        </div>
+      </div>
+
+      <div className={cn("w-full m-0", !isOpen && "h-0 w-0 opacity-0")}>
+        {isIniting ? (
+          <span className="flex-1 pl-2 text-nowrap text-ellipsis text-gray-500">
+            目录加载中...
+          </span>
+        ) : (
+          <SortableTree
+            items={items}
+            setItems={setAndSaveItems}
+            collapsible
+            indicator
+            creatable
+            editable
+            removable
+          />
         )}
       </div>
-    </div>
+    </>
   );
 }
 
@@ -80,6 +143,31 @@ export function SidebarSpaceCardSkeleton() {
       <Skeleton className="w-10 h-10" />
       <Skeleton className="h-10 w-full" />
     </div>
+  );
+}
+
+export function OpenButton({
+  isOpen,
+  setOpen,
+}: {
+  isOpen: boolean;
+  setOpen: () => void;
+}) {
+  return (
+    <Button
+      asChild
+      variant="outline"
+      className={cn("bg-transparent w-7 h-7 p-0 m-0 border-none text-primary")}
+      onClick={setOpen}
+    >
+      <ChevronUp
+        className={cn(
+          "w-auto h-auto m-0 p-0",
+          "transition-transform ease-in-out duration-300",
+          isOpen && "rotate-180"
+        )}
+      />
+    </Button>
   );
 }
 

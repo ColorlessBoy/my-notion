@@ -41,7 +41,7 @@ interface SpacesProviderProps {
 
 export const SpacesProvider = ({ userId, children }: SpacesProviderProps) => {
   const [spaces, setSpaces] = useState<Space[]>([]);
-  const [isInit, startInit] = useTransition();
+  const [isIniting, startInit] = useTransition();
   const [isPending, startTransition] = useTransition();
   const { spaceId } = useParams<{ spaceId?: string }>();
   const router = useRouter();
@@ -52,8 +52,8 @@ export const SpacesProvider = ({ userId, children }: SpacesProviderProps) => {
   }, [spaceId, spaces]);
 
   useEffect(() => {
-    startInit(() => {
-      db.space.$getAll(userId).then((spaces) => {
+    startInit(async () => {
+      await db.space.$getAll(userId).then((spaces) => {
         setSpaces(spaces);
       });
     });
@@ -64,8 +64,8 @@ export const SpacesProvider = ({ userId, children }: SpacesProviderProps) => {
     if (isPending) {
       return;
     }
-    startTransition(() => {
-      db.space.$create(userId, title, content).then((space) => {
+    startTransition(async () => {
+      await db.space.$create(userId, title, content).then((space) => {
         if (space) {
           setSpaces([...spaces, space]);
         }
@@ -81,7 +81,7 @@ export const SpacesProvider = ({ userId, children }: SpacesProviderProps) => {
     if (index === -1) {
       return;
     }
-    startTransition(() => {
+    startTransition(async () => {
       const deleteSpaceId = spaces.at(index)?.id;
       if (deleteSpaceId === undefined) {
         return;
@@ -92,7 +92,7 @@ export const SpacesProvider = ({ userId, children }: SpacesProviderProps) => {
       if (spaceId === deleteSpaceId) {
         router.push(`${SPACE_URL}`);
       }
-      db.space.$delete(deleteSpaceId);
+      await db.space.$delete(deleteSpaceId);
     });
   };
   const recoverFromTrash = (id: string) => {
@@ -107,8 +107,8 @@ export const SpacesProvider = ({ userId, children }: SpacesProviderProps) => {
     }
     newSpaces[index] = { ...spaces[index], isDeleted: false };
     setSpaces(newSpaces);
-    startTransition(() => {
-      db.space.$update(id, undefined, undefined, false);
+    startTransition(async () => {
+      await db.space.$update(id, undefined, undefined, false);
     });
   };
   const moveToTrash = (id: string) => {
@@ -123,8 +123,8 @@ export const SpacesProvider = ({ userId, children }: SpacesProviderProps) => {
     }
     newSpaces[index] = { ...spaces[index], isDeleted: true };
     setSpaces(newSpaces);
-    startTransition(() => {
-      db.space.$update(id, undefined, undefined, true);
+    startTransition(async () => {
+      await db.space.$update(id, undefined, undefined, true);
     });
   };
   const updateSpace = (id: string, title?: string, content?: string) => {
@@ -148,8 +148,8 @@ export const SpacesProvider = ({ userId, children }: SpacesProviderProps) => {
       newSpaces[index].content = content;
     }
     setSpaces(newSpaces);
-    startTransition(() => {
-      db.space.$update(id, title, content);
+    startTransition(async () => {
+      await db.space.$update(id, title, content);
     });
   };
 
@@ -157,7 +157,7 @@ export const SpacesProvider = ({ userId, children }: SpacesProviderProps) => {
     <SpacesContext.Provider
       value={{
         spaces,
-        isInit,
+        isInit: isIniting,
         isPending,
         createSpace,
         updateSpace,

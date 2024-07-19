@@ -138,7 +138,18 @@ export function findItemDeep(
   return undefined;
 }
 
-export function createNewChild(items: TreeItem[], id: UniqueIdentifier) {
+export function createNewChild(items: TreeItem[], id?: UniqueIdentifier) {
+  if (id === undefined) {
+    const newItems = [
+      ...items,
+      {
+        id: uuid(),
+        children: [],
+        title: "",
+      },
+    ];
+    return newItems;
+  }
   const newItems = [];
   for (const item of items) {
     const newItem = { ...item, children: [...item.children] };
