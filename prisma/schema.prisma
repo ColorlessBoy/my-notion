@@ -19,6 +19,7 @@ model Space {
   updatedAt DateTime @updatedAt
   title     String?
   content   String?
+  isDeleted Boolean?
 
   tocs TableOfContent[]
   notes Note[]

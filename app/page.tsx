@@ -1,12 +1,10 @@
-"use client";
-import { Item } from "@/components/DraggableTree/types";
-import Sidebar from "@/components/Sidebar";
-import SidebarToggle from "@/components/Sidebar/SidebarToggle";
+import MenuToggle from "@/components/MenuToggle";
+import { SidebarWrapper } from "@/components/Sidebar";
 import { SortableTree } from "@/components/SortableTree";
 import { TreeItem } from "@/components/SortableTree/types";
-import { useSidebarState } from "@/hooks/useSidebarToggle";
-import { useEffect, useRef } from "react";
-import { useStore } from "zustand";
+import { Button } from "@/components/ui/button";
+import { SPACE_URL } from "@/routes";
+import Link from "next/link";
 import { v4 as uuid } from "uuid";
 
 const initialItems: TreeItem[] = [
@@ -41,20 +39,26 @@ const initialItems: TreeItem[] = [
 ];
 
 export default function Home() {
-  const sidebarState = useStore(useSidebarState, (state) => state);
-  const mouseMoveDivRef = useRef<HTMLDivElement>(null);
   return (
     <>
-      <Sidebar />
-      <main className="flex-1 h-full overflow-y-auto items-center justify-center">
+      <SidebarWrapper>
+        <Button
+          asChild
+          type="button"
+          variant="link"
+          className="group w-full flex justify-center pr-2"
+        >
+          <Link href={SPACE_URL} className="w-full text-center text-3xl">
+            <span>空间</span>
+          </Link>
+        </Button>
+      </SidebarWrapper>
+      <main className="relative flex-1 h-full overflow-y-auto items-center justify-center">
+        <MenuToggle />
         <div className="flex flex-col">
           <h1 className="flex-row justify-center items-center m-2 p-2">
             Main Page
           </h1>
-          <SidebarToggle
-            isOpen={sidebarState.isOpen}
-            switchOpen={sidebarState.switchOpen}
-          />
           <div className="w-[350px] w-max-[100%] p-2 mx-auto mb-0 mt-[10%]">
             <SortableTree
               initialItems={initialItems}
