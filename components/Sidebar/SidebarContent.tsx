@@ -6,13 +6,14 @@ import { SidebarSpaceCard, SidebarSpaceCardSkeleton } from "./SidebarSpaceCard";
 import { Button } from "../ui/button";
 import Link from "next/link";
 import { SPACE_URL } from "@/routes";
-import { Trash2 } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
 } from "../ui/accordion";
+import { cn, vibrantColors } from "@/lib/utils";
 
 export function SidebarContent() {
   return (
@@ -20,6 +21,7 @@ export function SidebarContent() {
       <FollowHead className="flex justify-center items-center my-10" />
       <SpaceShelfButton />
       <SpaceList />
+      <CreateNewSpaceButton />
       <SpaceTrashContent />
     </>
   );
@@ -34,6 +36,24 @@ export function SpaceShelfButton() {
     >
       <Link href={SPACE_URL}>书架</Link>
     </Button>
+  );
+}
+
+export function CreateNewSpaceButton() {
+  const spacesContext = useContext(SpacesContext);
+  return (
+    <div
+      role="button"
+      onClick={() => spacesContext?.createSpace()}
+      className={cn(
+        "flex items-center pr-1 gap-x-1 hover:bg-gray-200 flex-nowrap rounded-sm text-gray-500 my-4"
+      )}
+    >
+      <Plus className="w-7 h-7 bg-transparent" />
+      <span className="font-medium text-lg text-nowrap flex-1 bg-transparent">
+        新建书籍
+      </span>
+    </div>
   );
 }
 
