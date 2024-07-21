@@ -25,6 +25,19 @@ export async function $getAll(spaceId: string) {
   return [];
 }
 
+export async function $get(id: string) {
+  try {
+    log("$get", { id });
+    const note = await prisma.note.findUnique({
+      where: { id },
+    });
+    return note;
+  } catch (error) {
+    logError("$get", error);
+  }
+  return null;
+}
+
 export async function $create(
   spaceId: string,
   title?: string,

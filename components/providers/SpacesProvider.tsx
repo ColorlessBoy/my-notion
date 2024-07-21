@@ -31,6 +31,8 @@ interface SpacesContextType {
 
   notesMap: Record<string, Note[]>;
 
+  fetchNote: (spaceId: string, noteId: string) => Promise<Note | null>;
+
   tocMap: Record<string, TreeItem[]>;
 
   updateNoteTitle: (spaceId: string, noteId: string, newTitle: string) => void;
@@ -134,6 +136,23 @@ export const SpacesProvider = ({ userId, children }: SpacesProviderProps) => {
     return newSpaces[index];
   };
 
+  const fetchNote = async (spaceId: string, noteId: string) => {
+    let spaceNoteList = [...notesMap[spaceId]];
+    if (!spaceNoteList) {
+      spaceNoteList = [];
+    }
+    const note = spaceNoteList.find((n) => n.id === noteId);
+    if (note) {
+      return note;
+    }
+    const noteFromDb = await db.note.$get(noteId);
+    if (noteFromDb) {
+      spaceNoteList.push(noteFromDb);
+      setNotesMap({ ...notesMap, [spaceId]: spaceNoteList });
+    }
+    return noteFromDb;
+  };
+
   const createNote = async (spaceId: string) => {
     log("createNote", spaceId);
     const note = await db.note.$create(spaceId);
@@ -228,6 +247,8 @@ export const SpacesProvider = ({ userId, children }: SpacesProviderProps) => {
         updateSpace,
 
         notesMap,
+        fetchNote,
+
         tocMap,
         updateNoteTitle,
         saveNote,
