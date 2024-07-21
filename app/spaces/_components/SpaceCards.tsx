@@ -1,6 +1,6 @@
 "use client";
 
-import { SpacesContext } from "@/providers/SpacesProvider";
+import { SpacesContext } from "@/components/providers/SpacesProvider";
 import { useContext } from "react";
 import SpaceCard, { SpaceCardEditableContent } from "./SpaceCard";
 import { stringToColor } from "@/lib/utils";

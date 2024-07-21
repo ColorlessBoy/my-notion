@@ -1,8 +1,13 @@
 "use client";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { createPortal } from "react-dom";
 import {
-  Announcements,
   DndContext,
   closestCenter,
   KeyboardSensor,
@@ -35,11 +40,13 @@ import {
   removeItem,
   removeChildrenOf,
   setProperty,
+  createNewChild,
 } from "./utilities";
 import type { FlattenedItem, SensorContext, TreeItem } from "./types";
 import { sortableTreeKeyboardCoordinates } from "./keyboardCoordinates";
 import { CSS } from "@dnd-kit/utilities";
 import { SortableTreeItem } from "./TreeItem";
+import { debounce } from "lodash";
 
 const measuring = {
   droppable: {
@@ -72,28 +79,36 @@ const dropAnimationConfig: DropAnimation = {
 
 interface Props {
   items: TreeItem[];
-  setItems?: (newItems: TreeItem[]) => void;
+  setItems: (items: TreeItem[]) => void;
   collapsible?: boolean;
-  indicator?: boolean;
-  creatable?: boolean;
+  deletable?: boolean;
   editable?: boolean;
-  removable?: boolean;
+  draggable?: boolean;
+  creatable?: boolean;
+  indicator?: boolean;
   indentationWidth?: number;
-  createNewChild?: (id?: UniqueIdentifier) => void;
-  updateTitle?: (id: UniqueIdentifier, title: string) => void;
+
+  onCreateChild?: () => Promise<TreeItem | undefined>;
+  onUpdateTitle?: (id: UniqueIdentifier, newTitle: string) => void;
+
+  onSaveItems?: (items: TreeItem[]) => Promise<void>;
+  onSaveItem?: (item: TreeItem) => void;
 }
 
 export function SortableTree({
   items,
   setItems,
   collapsible,
-  indicator = false,
-  creatable,
+  deletable,
   editable,
-  removable,
+  draggable,
+  creatable,
+  indicator = false,
   indentationWidth = 16,
-  createNewChild,
-  updateTitle,
+  onCreateChild,
+  onUpdateTitle,
+  onSaveItems,
+  onSaveItem,
 }: Props) {
   const [isMounted, setMounted] = useState(false);
   const [activeId, setActiveId] = useState<UniqueIdentifier | null>(null);
@@ -104,6 +119,17 @@ export function SortableTree({
     overId: UniqueIdentifier;
   } | null>(null);
 
+  const [isSaving, setIsSaving] = useState(false);
+  const internalOnSaveItems = useCallback(
+    debounce(async (items: TreeItem[]) => {
+      if (onSaveItems) {
+        setIsSaving(true);
+        await onSaveItems(items);
+        setIsSaving(false);
+      }
+    }, 300),
+    []
+  );
   const flattenedItems = useMemo(() => {
     const flattenedTree = flattenTree(items);
     const collapsedItems = flattenedTree.reduce<UniqueIdentifier[]>(
@@ -161,30 +187,12 @@ export function SortableTree({
     };
   }, [flattenedItems, offsetLeft]);
 
-  const announcements: Announcements = {
-    onDragStart({ active }) {
-      return `Picked up ${active.id}.`;
-    },
-    onDragMove({ active, over }) {
-      return getMovementAnnouncement("onDragMove", active.id, over?.id);
-    },
-    onDragOver({ active, over }) {
-      return getMovementAnnouncement("onDragOver", active.id, over?.id);
-    },
-    onDragEnd({ active, over }) {
-      return getMovementAnnouncement("onDragEnd", active.id, over?.id);
-    },
-    onDragCancel({ active }) {
-      return `Moving was cancelled. ${active.id} was dropped in its original position.`;
-    },
-  };
   if (!isMounted) {
     return null;
   }
 
   return (
     <DndContext
-      accessibility={{ announcements }}
       sensors={sensors}
       collisionDetection={closestCenter}
       measuring={measuring}
@@ -195,36 +203,30 @@ export function SortableTree({
       onDragCancel={handleDragCancel}
     >
       <SortableContext items={sortedIds} strategy={verticalListSortingStrategy}>
-        {flattenedItems.map(({ id, title, children, collapsed, depth }) => (
+        {flattenedItems.map((item) => (
           <SortableTreeItem
-            key={id}
-            id={id}
-            value={title}
-            depth={id === activeId && projected ? projected.depth : depth}
+            key={item.id}
+            id={item.id}
+            value={item.title}
+            depth={
+              item.id === activeId && projected ? projected.depth : item.depth
+            }
             indentationWidth={indentationWidth}
             indicator={indicator}
-            collapsed={Boolean(collapsed && children.length)}
-            onCollapse={
-              collapsible && children.length
-                ? () => handleCollapse(id)
-                : undefined
+            collapsed={item.collapsed}
+            isSavingItems={isSaving}
+            onCollapse={collapsible ? () => handleCollapse(item.id) : undefined}
+            onCreateNewChild={
+              creatable ? () => handleCreateNewChild(item.id) : undefined
             }
-            onCreate={
-              creatable
-                ? () => {
-                    handleCreateNewChild(id);
-                  }
-                : undefined
-            }
-            onChangeTitle={
+            onDelete={deletable ? () => handleDelete(item.id) : undefined}
+            onUpdateTitle={
               editable
-                ? (newTitle: string) => {
-                    handleUpdateTitle(id, newTitle);
-                  }
+                ? (newTitle: string) => handleUpdateTitle(item.id, newTitle)
                 : undefined
             }
-            onRemove={removable ? () => handleRemove(id) : undefined}
-            onSave={() => setItems && setItems(items)}
+            onSaveTitle={() => handleSaveTitle(item)}
+            draggable={draggable}
           />
         ))}
         {createPortal(
@@ -289,8 +291,8 @@ export function SortableTree({
 
       const sortedItems = arrayMove(clonedItems, activeIndex, overIndex);
       const newItems = buildTree(sortedItems);
-
-      setItems && setItems(newItems);
+      setItems(newItems);
+      internalOnSaveItems(newItems);
     }
   }
 
@@ -307,88 +309,46 @@ export function SortableTree({
     document.body.style.setProperty("cursor", "");
   }
 
-  function handleCreateNewChild(id: UniqueIdentifier) {
-    if (createNewChild) {
-      createNewChild(id);
+  function handleCollapse(id: UniqueIdentifier) {
+    if (collapsible) {
+      const newItems = setProperty(items, id, "collapsed", (value) => !value);
+      setItems(newItems);
+      internalOnSaveItems(newItems);
+    }
+  }
+
+  async function handleCreateNewChild(id: UniqueIdentifier) {
+    if (onCreateChild) {
+      setIsSaving(true);
+      const dbNewItem = await onCreateChild();
+      const newItems = createNewChild(items, id, dbNewItem);
+      setItems(newItems);
+      await internalOnSaveItems(newItems);
+      setIsSaving(false);
+    }
+  }
+
+  function handleDelete(id: UniqueIdentifier) {
+    if (deletable) {
+      const newItems = removeItem(items, id);
+      setItems(newItems);
+      internalOnSaveItems(newItems);
     }
   }
 
   function handleUpdateTitle(id: UniqueIdentifier, title: string) {
-    if (updateTitle) {
-      updateTitle(id, title);
+    if (onUpdateTitle) {
+      onUpdateTitle(id, title);
+      const newItems = setProperty(items, id, "title", () => title);
+      setItems(newItems);
     }
   }
 
-  function handleRemove(id: UniqueIdentifier) {
-    const removed = removeItem(items, id);
-    setItems && setItems(removed);
-  }
-
-  function handleCollapse(id: UniqueIdentifier) {
-    const newItems = [...items];
-    setProperty(newItems, id, "collapsed", (value) => {
-      return !value;
-    });
-    setItems && setItems(newItems);
-  }
-
-  function getMovementAnnouncement(
-    eventName: string,
-    activeId: UniqueIdentifier,
-    overId?: UniqueIdentifier
-  ) {
-    if (overId && projected) {
-      if (eventName !== "onDragEnd") {
-        if (
-          currentPosition &&
-          projected.parentId === currentPosition.parentId &&
-          overId === currentPosition.overId
-        ) {
-          return;
-        } else {
-          setCurrentPosition({
-            parentId: projected.parentId,
-            overId,
-          });
-        }
-      }
-
-      const clonedItems: FlattenedItem[] = JSON.parse(
-        JSON.stringify(flattenTree(items))
-      );
-      const overIndex = clonedItems.findIndex(({ id }) => id === overId);
-      const activeIndex = clonedItems.findIndex(({ id }) => id === activeId);
-      const sortedItems = arrayMove(clonedItems, activeIndex, overIndex);
-
-      const previousItem = sortedItems[overIndex - 1];
-
-      let announcement;
-      const movedVerb = eventName === "onDragEnd" ? "dropped" : "moved";
-      const nestedVerb = eventName === "onDragEnd" ? "dropped" : "nested";
-
-      if (!previousItem) {
-        const nextItem = sortedItems[overIndex + 1];
-        announcement = `${activeId} was ${movedVerb} before ${nextItem?.id}.`;
-      } else {
-        if (projected.depth > previousItem.depth) {
-          announcement = `${activeId} was ${nestedVerb} under ${previousItem.id}.`;
-        } else {
-          let previousSibling: FlattenedItem | undefined = previousItem;
-          while (previousSibling && projected.depth < previousSibling.depth) {
-            const parentId: UniqueIdentifier | null = previousSibling.parentId;
-            previousSibling = sortedItems.find(({ id }) => id === parentId);
-          }
-
-          if (previousSibling) {
-            announcement = `${activeId} was ${movedVerb} after ${previousSibling.id}.`;
-          }
-        }
-      }
-
-      return announcement;
+  function handleSaveTitle(item: TreeItem) {
+    if (onSaveItem) {
+      onSaveItem(item);
+      internalOnSaveItems(items);
     }
-
-    return;
   }
 }
 

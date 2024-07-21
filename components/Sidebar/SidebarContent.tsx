@@ -1,7 +1,7 @@
 "use client";
 import { useContext, useState } from "react";
 import { FollowHead } from "../FollowIcon";
-import { SpacesContext } from "@/providers/SpacesProvider";
+import { SpacesContext } from "@/components/providers/SpacesProvider";
 import { SidebarSpaceCard, SidebarSpaceCardSkeleton } from "./SidebarSpaceCard";
 import { Button } from "../ui/button";
 import Link from "next/link";
@@ -16,6 +16,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useParams, useRouter } from "next/navigation";
 import { Space } from "@prisma/client";
+import { TreeItem } from "../SortableTree/types";
 
 export function SidebarContent() {
   return (
@@ -106,6 +107,21 @@ export function SpaceList() {
             router.push(`${SPACE_URL}/${space.id}`);
           }}
           openable
+          fetchItems={() => spacesContext.fetchToc(space.id)}
+          items={spacesContext.getToc(space.id)}
+          setItems={(items: TreeItem[]) => {
+            spacesContext.setToc(space.id, items);
+          }}
+          onCreateItemChild={() => spacesContext.createTreeItem(space.id)}
+          onUpdateItemTitle={(noteId, newTitile) =>
+            spacesContext.updateNoteTitle(space.id, noteId as string, newTitile)
+          }
+          onSaveItem={(item: TreeItem) => {
+            spacesContext.saveNote(space.id, item.id as string);
+          }}
+          onSaveItems={(items: TreeItem[]) =>
+            spacesContext.saveToc(space.id, items)
+          }
         />
       );
     });

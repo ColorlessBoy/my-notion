@@ -57,7 +57,11 @@ export async function $delete(id: string) {
   return null;
 }
 
-export async function $update(id: string, title?: string, content?: string) {
+export async function $update(
+  id: string,
+  title?: string | null,
+  content?: string | null
+) {
   try {
     log("$update", { id, title, content });
     let data = {};

@@ -62,17 +62,6 @@ export default function Home() {
           <h1 className="flex-row justify-center items-center m-2 p-2">
             Main Page
           </h1>
-          <div className="w-[350px] w-max-[100%] p-2 mx-auto mb-0 mt-[10%]">
-            <SortableTree
-              items={items}
-              setItems={setItems}
-              collapsible
-              indicator
-              creatable
-              editable
-              removable
-            />
-          </div>
         </div>
       </main>
     </>

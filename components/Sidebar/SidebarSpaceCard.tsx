@@ -4,9 +4,13 @@ import { BookIcon, ChevronUp, Loader2, Plus, Redo, X } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Space } from "@prisma/client";
 import { cn, stringToColor } from "@/lib/utils";
-import { KeyboardEventHandler, useCallback, useState } from "react";
+import { KeyboardEventHandler, useCallback, useEffect, useState } from "react";
 import { Button } from "../ui/button";
 import { debounce } from "lodash";
+import { TreeItem } from "../SortableTree/types";
+import { UniqueIdentifier } from "@dnd-kit/core";
+import { SortableTree } from "../SortableTree";
+import { createNewChild } from "../SortableTree/utilities";
 
 interface SidebarSpaceCardProps {
   space: Space;
@@ -21,6 +25,14 @@ interface SidebarSpaceCardProps {
   onChangeRoute?: () => void;
 
   openable?: boolean;
+
+  fetchItems?: () => Promise<TreeItem[]>;
+  items?: TreeItem[];
+  setItems?: (items: TreeItem[]) => void;
+  onCreateItemChild?: () => Promise<TreeItem | undefined>;
+  onUpdateItemTitle?: (noteId: UniqueIdentifier, newTitle: string) => void;
+  onSaveItems?: (items: TreeItem[]) => Promise<void>;
+  onSaveItem?: (item: TreeItem) => void;
 }
 
 export function SidebarSpaceCard({
@@ -36,11 +48,29 @@ export function SidebarSpaceCard({
   onChangeRoute,
 
   openable,
+
+  fetchItems,
+  items,
+  setItems,
+  onCreateItemChild,
+  onUpdateItemTitle,
+  onSaveItem,
+  onSaveItems,
 }: SidebarSpaceCardProps) {
   const [showTool, setShowTool] = useState(false);
   const [isEditing, setEditing] = useState(false);
-  const [isOpen, setOpen] = useState(isActive);
+  const [isOpen, setOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    if (fetchItems && setItems) {
+      setIsSaving(true);
+      fetchItems().then((items) => {
+        setItems(items);
+        setIsSaving(false);
+      });
+    }
+  }, [isOpen]);
 
   const debouncedSave = useCallback(
     debounce(async (space: Space) => {
@@ -113,6 +143,21 @@ export function SidebarSpaceCard({
           {!isSaving && showTool && !isEditing && onMoveToTrash && (
             <DeleteButton onDelete={internalOnMoveToTrash} />
           )}
+          {!isSaving && showTool && !isEditing && onCreateItemChild && (
+            <CreateNewNoteButton
+              onCreate={async () => {
+                if (items && setItems && onSaveItems) {
+                  setIsSaving(true);
+                  const dbNewItem = await onCreateItemChild();
+                  const newItems = createNewChild(items, undefined, dbNewItem);
+                  setItems(newItems);
+                  await onSaveItems(newItems);
+                  setIsSaving(false);
+                  setOpen(true);
+                }
+              }}
+            />
+          )}
           {!isSaving && !isEditing && openable && (
             <OpenButton
               isOpen={isOpen}
@@ -130,27 +175,24 @@ export function SidebarSpaceCard({
           )}
         </div>
       </div>
-      {/* items && (
+      {items && (
         <div className={cn("w-full m-0", !isOpen && "h-0 w-0 opacity-0")}>
-          {isIniting ? (
-            <span className="flex-1 pl-2 text-nowrap text-ellipsis text-gray-500">
-              目录加载中...
-            </span>
-          ) : (
-            <SortableTree
-              items={items}
-              setItems={setItems}
-              collapsible
-              indicator
-              creatable
-              editable
-              removable
-              createNewChild={createNewChild}
-              updateTitle={updateTitle}
-            />
-          )}
+          <SortableTree
+            items={items}
+            setItems={(items: TreeItem[]) => setItems && setItems(items)}
+            collapsible
+            deletable
+            editable
+            draggable
+            indicator
+            creatable
+            onCreateChild={onCreateItemChild}
+            onUpdateTitle={onUpdateItemTitle}
+            onSaveItem={onSaveItem}
+            onSaveItems={onSaveItems}
+          />
         </div>
-      ) */}
+      )}
     </>
   );
 }

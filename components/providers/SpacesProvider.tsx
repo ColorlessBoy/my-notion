@@ -1,7 +1,6 @@
 "use client";
 import * as db from "@/db";
-import { Space } from "@prisma/client";
-import { useRouter, useParams } from "next/navigation";
+import { Note, Space } from "@prisma/client";
 import {
   ReactNode,
   createContext,
@@ -9,6 +8,7 @@ import {
   useState,
   useTransition,
 } from "react";
+import { TreeItem } from "../SortableTree/types";
 
 function log(name: string, obj?: any) {
   console.log(`[providers][space][${name}]`, obj);
@@ -29,16 +29,18 @@ interface SpacesContextType {
     isDeleted?: boolean
   ) => Space;
 
-  /*
   notesMap: Record<string, Note[]>;
 
   tocMap: Record<string, TreeItem[]>;
+
+  updateNoteTitle: (spaceId: string, noteId: string, newTitle: string) => void;
+  saveNote: (spaceId: string, noteId: string) => Promise<void>;
+
+  createTreeItem: (spaceId: string) => Promise<TreeItem | undefined>;
   fetchToc: (spaceId: string) => Promise<TreeItem[]>;
   getToc: (spaceId: string) => TreeItem[];
-  setToc: (spaceId: string, newTreeItems: TreeItem[]) => void;
-  tocCreateNewChild: (spaceId: string, noteId?: string) => Promise<void>;
-  tocUpdateTitle: (spaceId: string, noteId: string, newTitle: string) => void;
-  */
+  setToc: (spaceId: string, newItems: TreeItem[]) => void;
+  saveToc: (spaceId: string, newItems: TreeItem[]) => Promise<void>;
 }
 
 export const SpacesContext = createContext<SpacesContextType | undefined>(
@@ -52,8 +54,8 @@ interface SpacesProviderProps {
 
 export const SpacesProvider = ({ userId, children }: SpacesProviderProps) => {
   const [spaces, setSpaces] = useState<Space[]>([]);
-  // const [tocMap, setTocMap] = useState<Record<string, TreeItem[]>>({});
-  // const [notesMap, setNotesMap] = useState<Record<string, Note[]>>({});
+  const [tocMap, setTocMap] = useState<Record<string, TreeItem[]>>({});
+  const [notesMap, setNotesMap] = useState<Record<string, Note[]>>({});
 
   const [isLoading, load] = useTransition();
   // 初始化
@@ -132,7 +134,6 @@ export const SpacesProvider = ({ userId, children }: SpacesProviderProps) => {
     return newSpaces[index];
   };
 
-  /*
   const createNote = async (spaceId: string) => {
     log("createNote", spaceId);
     const note = await db.note.$create(spaceId);
@@ -160,9 +161,29 @@ export const SpacesProvider = ({ userId, children }: SpacesProviderProps) => {
         const newNoteList = [...noteList];
         newNoteList[index] = { ...noteList[index], title: newTitle };
         setNotesMap({ ...notesMap, [spaceId]: newNoteList });
-        db.note.$update(noteId, newTitle);
       }
     }
+  };
+  const saveNote = async (spaceId: string, noteId: string) => {
+    log("saveNote", { spaceId, noteId });
+    const noteList = notesMap[spaceId];
+    const note = noteList.find((note) => note.id === noteId);
+    if (note) {
+      await db.note.$update(note.id, note.title, note.content);
+    }
+  };
+  const createTreeItem = async (spaceId: string) => {
+    const note = await createNote(spaceId);
+    if (note) {
+      const item: TreeItem = {
+        id: note.id,
+        title: note.title || "",
+        children: [],
+        collapsed: false,
+      };
+      return item;
+    }
+    return;
   };
   const fetchToc = async (spaceId: string) => {
     log("fetchToc", spaceId);
@@ -171,55 +192,30 @@ export const SpacesProvider = ({ userId, children }: SpacesProviderProps) => {
       const toc = await db.tableOfContent.$getLatest(spaceId);
       if (toc !== null && toc.content !== null) {
         const newItems = JSON.parse(toc.content) as TreeItem[];
-        const newTocMap = { ...tocMap, [spaceId]: newItems };
-        setTocMap(newTocMap);
+        log("fetchToc", { newItems });
         return newItems;
       }
     }
+    log("fetchToc", { result });
     return result;
   };
 
   const getToc = (spaceId: string) => {
-    log("getToc", spaceId);
-    return tocMap[spaceId] || [];
+    const result = tocMap[spaceId];
+    log("getToc", { spaceId, result });
+    return result || [];
   };
 
   const setToc = (spaceId: string, newItems: TreeItem[]) => {
     log("setToc", spaceId);
     const newTocMap = { ...tocMap, [spaceId]: newItems };
     setTocMap(newTocMap);
+  };
+  const saveToc = async (spaceId: string, newItems: TreeItem[]) => {
     // 总是设置新的toc，定时清除
-    db.tableOfContent.$create(spaceId, JSON.stringify(newItems));
+    log("saveToc", spaceId);
+    await db.tableOfContent.$create(spaceId, JSON.stringify(newItems));
   };
-
-  const tocCreateNewChild = async (spaceId: string, noteId?: string) => {
-    log("tocCreateNewChild", spaceId);
-    const newNote = await createNote(spaceId);
-    const newItem = newNote
-      ? {
-          id: newNote.id,
-          title: newNote.title || "",
-          children: [] as TreeItem[],
-          collapsed: false,
-        }
-      : undefined;
-    const toc = getToc(spaceId);
-    const newToc = createNewChild(toc, noteId, newItem);
-    const newTocMap = { ...tocMap, [spaceId]: newToc };
-    setTocMap(newTocMap);
-  };
-
-  const tocUpdateTitle = (spaceId: string, noteId: string, title: string) => {
-    log("tocCreateNewChild", spaceId);
-    const toc = getToc(spaceId);
-    const newToc = [...toc];
-    setProperty(newToc, noteId, "title", (_) => {
-      return title;
-    });
-    updateNoteTitle(spaceId, noteId, title);
-    setToc(spaceId, newToc);
-  };
-  */
 
   return (
     <SpacesContext.Provider
@@ -230,6 +226,16 @@ export const SpacesProvider = ({ userId, children }: SpacesProviderProps) => {
         deleteSpace,
         saveSpace,
         updateSpace,
+
+        notesMap,
+        tocMap,
+        updateNoteTitle,
+        saveNote,
+        createTreeItem,
+        fetchToc,
+        getToc,
+        setToc,
+        saveToc,
       }}
     >
       {children}

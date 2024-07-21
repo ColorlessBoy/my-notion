@@ -13,6 +13,7 @@ import { Handle } from "./Handle";
 import { Delete } from "./Delete";
 import { Collapse } from "./Collapse";
 import { Create } from "./Create";
+import { Loader2 } from "lucide-react";
 
 export interface Props extends Omit<HTMLAttributes<HTMLLIElement>, "id"> {
   childCount?: number;
@@ -26,12 +27,18 @@ export interface Props extends Omit<HTMLAttributes<HTMLLIElement>, "id"> {
   indicator?: boolean;
   indentationWidth: number;
   value: string;
-  onCollapse?(): void;
-  onChangeTitle?(newTitle: string): void;
-  onCreate?(): void;
-  onRemove?(): void;
   wrapperRef?(node: HTMLLIElement): void;
-  onSave?(): void;
+
+  isSavingItems?: boolean;
+
+  onCollapse?(): void;
+  onCreateNewChild?(): void;
+  onDelete?(): void;
+
+  onUpdateTitle?(newTitle: string): void;
+  onSaveTitle?(): void;
+
+  draggable?: boolean;
 }
 
 export const TreeItem = forwardRef<HTMLDivElement, Props>(
@@ -47,11 +54,15 @@ export const TreeItem = forwardRef<HTMLDivElement, Props>(
       indentationWidth,
       indicator,
       collapsed,
+
+      isSavingItems,
       onCollapse,
-      onCreate,
-      onChangeTitle,
-      onRemove,
-      onSave,
+      onCreateNewChild,
+      onDelete,
+      onUpdateTitle,
+      onSaveTitle,
+      draggable,
+
       style,
       value,
       wrapperRef,
@@ -63,23 +74,23 @@ export const TreeItem = forwardRef<HTMLDivElement, Props>(
     const [isEditing, setIsEditing] = useState(false);
 
     const handleDoubleClick = () => {
-      if (onChangeTitle) {
+      if (onUpdateTitle) {
         setIsEditing(true);
       }
     };
 
     const handleBlur = () => {
-      if (onChangeTitle) {
+      if (onUpdateTitle) {
         setIsEditing(false);
-        onSave && onSave();
+        onSaveTitle && onSaveTitle();
       }
     };
 
     const handleKeyDown: KeyboardEventHandler<HTMLInputElement> = (event) => {
-      if (onChangeTitle && event.key === "Enter") {
+      if (onUpdateTitle && event.key === "Enter") {
         event.preventDefault();
         setIsEditing(false);
-        onSave && onSave();
+        onSaveTitle && onSaveTitle();
       }
     };
 
@@ -106,18 +117,18 @@ export const TreeItem = forwardRef<HTMLDivElement, Props>(
         }}
       >
         <div className={cn(styles.TreeItem)} ref={ref} style={style}>
-          {onCollapse && (
+          {!clone && onCollapse && (
             <Collapse
               onClick={onCollapse}
               collapsed={collapsed}
               className={cn(ghost && "opacity-0 h-0")}
             />
           )}
-          {isEditing ? (
+          {!clone && isEditing ? (
             <input
               className={cn(styles.Input, "px-2 w-full")}
               value={value}
-              onChange={(e) => onChangeTitle && onChangeTitle(e.target.value)}
+              onChange={(e) => onUpdateTitle && onUpdateTitle(e.target.value)}
               onBlur={handleBlur}
               onKeyDown={handleKeyDown}
               autoFocus
@@ -127,13 +138,16 @@ export const TreeItem = forwardRef<HTMLDivElement, Props>(
               {value || "无标题"}
             </span>
           )}
-          {!clone && onRemove && (
-            <Delete onClick={onRemove} showTool={showTools && !isEditing} />
+          {!clone && onDelete && (
+            <Delete onClick={onDelete} showTool={showTools && !isEditing} />
           )}
-          {!clone && onCreate && (
-            <Create onClick={onCreate} showTool={showTools && !isEditing} />
+          {!clone && onCreateNewChild && (
+            <Create
+              onClick={onCreateNewChild}
+              showTool={showTools && !isEditing}
+            />
           )}
-          {!clone && (
+          {!clone && draggable && (
             <Handle {...handleProps} showTool={showTools && !isEditing} />
           )}
           {clone && childCount && childCount > 1 ? (
