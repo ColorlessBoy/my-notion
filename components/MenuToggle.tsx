@@ -15,7 +15,7 @@ export default function MenuToggle({ className }: MenuToggleProps) {
     <Button
       onClick={sidebarState.switchOpen}
       className={cn(
-        "rounded-sm w-8 h-8 p-0 border-none bg-transparent items-center justify-center hover:bg-neutral-200 dark:hover:bg-neutral-800",
+        "rounded-sm w-8 h-8 p-0 border-none items-center justify-center hover:bg-neutral-200 dark:hover:bg-neutral-800",
         sidebarState.isOpen ? "invisible" : "block",
         className
       )}

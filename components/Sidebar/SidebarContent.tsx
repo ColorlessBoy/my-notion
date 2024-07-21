@@ -6,7 +6,7 @@ import { SidebarSpaceCard, SidebarSpaceCardSkeleton } from "./SidebarSpaceCard";
 import { Button } from "../ui/button";
 import Link from "next/link";
 import { SPACE_URL } from "@/routes";
-import { Plus, Trash2 } from "lucide-react";
+import { Loader2, Plus, Trash2 } from "lucide-react";
 import {
   Accordion,
   AccordionContent,
@@ -43,15 +43,28 @@ export function SpaceShelfButton() {
 
 export function CreateNewSpaceButton() {
   const spacesContext = useContext(SpacesContext);
+  const [isCreating, setIsCreating] = useState(false);
+  const onClick = () => {
+    if (!isCreating && spacesContext?.createSpace) {
+      setIsCreating(true);
+      spacesContext.createSpace().then(() => {
+        setIsCreating(false);
+      });
+    }
+  };
   return (
     <div
       role="button"
-      onClick={() => spacesContext?.createSpace()}
+      onClick={onClick}
       className={cn(
         "flex items-center pr-1 gap-x-1 hover:bg-gray-200 flex-nowrap rounded-sm text-gray-500 my-4"
       )}
     >
-      <Plus className="w-7 h-7 bg-transparent" />
+      {isCreating ? (
+        <Loader2 className="w-7 h-7 bg-transparent animate-spin" />
+      ) : (
+        <Plus className="w-7 h-7 bg-transparent" />
+      )}
       <span className="font-medium text-lg text-nowrap flex-1 bg-transparent">
         新建书籍
       </span>
