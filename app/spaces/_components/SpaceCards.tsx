@@ -4,10 +4,14 @@ import { SpacesContext } from "@/providers/SpacesProvider";
 import { useContext } from "react";
 import SpaceCard, { SpaceCardEditableContent } from "./SpaceCard";
 import { stringToColor } from "@/lib/utils";
-import { Loader2, PlusIcon } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { SPACE_URL } from "@/routes";
+import { Space } from "@prisma/client";
 
 export default function SpaceCards() {
   const spacesContext = useContext(SpacesContext);
+
+  const router = useRouter();
 
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 p-5">
@@ -16,34 +20,30 @@ export default function SpaceCards() {
         .map((space) => {
           return (
             <SpaceCard
+              space={space}
               key={space.id}
               backgroundColor={stringToColor(space.title)}
-              onDelete={() => {
-                spacesContext.moveToTrash(space.id);
+              onMoveToTrash={() => {
+                return spacesContext.updateSpace(
+                  space,
+                  undefined,
+                  undefined,
+                  true
+                );
               }}
-            >
-              <SpaceCardEditableContent
-                value={space.title}
-                onChange={(value: string) => {
-                  spacesContext.updateSpace(space.id, value);
-                }}
-              />
-            </SpaceCard>
+              onUpdateTitle={(newTitle: string) => {
+                return spacesContext.updateSpace(space, newTitle);
+              }}
+              onSave={async (space: Space) => {
+                await spacesContext.saveSpace(space);
+              }}
+              onChangeRoute={() => {
+                router.push(`${SPACE_URL}/${space.id}`);
+              }}
+            />
           );
         })}
-      <SpaceCard
-        onClick={() => {
-          spacesContext?.createSpace();
-        }}
-      >
-        {spacesContext === undefined ||
-        spacesContext?.isPending === true ||
-        spacesContext?.isInit === true ? (
-          <Loader2 className="w-10 h-10 text-gray-500  animate-spin" />
-        ) : (
-          <PlusIcon className="w-10 h-10 text-gray-500" />
-        )}
-      </SpaceCard>
+      <SpaceCard onCreate={spacesContext?.createSpace} isAddCard />
     </div>
   );
 }

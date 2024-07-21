@@ -13,7 +13,9 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "../ui/accordion";
-import { cn, vibrantColors } from "@/lib/utils";
+import { cn } from "@/lib/utils";
+import { useParams, useRouter } from "next/navigation";
+import { Space } from "@prisma/client";
 
 export function SidebarContent() {
   return (
@@ -59,7 +61,9 @@ export function CreateNewSpaceButton() {
 
 export function SpaceList() {
   const spacesContext = useContext(SpacesContext);
-  if (spacesContext === undefined || spacesContext?.isInit) {
+  const { spaceId } = useParams<{ spaceId?: string }>();
+  const router = useRouter();
+  if (spacesContext === undefined || spacesContext?.isLoading) {
     return (
       <>
         <SidebarSpaceCardSkeleton />;
@@ -75,12 +79,18 @@ export function SpaceList() {
         <SidebarSpaceCard
           key={space.id}
           space={space}
-          isActive={spacesContext?.choosedSpace?.id === space.id}
-          onTrash={() => {
-            spacesContext.moveToTrash(space.id);
+          isActive={spaceId === space.id}
+          onSave={async (space: Space) => {
+            await spacesContext.saveSpace(space);
           }}
-          onChange={(newTitle: string) => {
-            spacesContext?.updateSpace(space.id, newTitle);
+          onMoveToTrash={() => {
+            return spacesContext.updateSpace(space, undefined, undefined, true);
+          }}
+          onUpdateTitle={(newTitle: string) => {
+            return spacesContext.updateSpace(space, newTitle);
+          }}
+          onChangeRoute={() => {
+            router.push(`${SPACE_URL}/${space.id}`);
           }}
           openable
         />
@@ -110,11 +120,19 @@ export function SpaceTrashContent() {
                   space={space}
                   isActive={false}
                   className="pl-2"
-                  onDelete={() => {
+                  onSave={async (space: Space) => {
+                    await spacesContext.saveSpace(space);
+                  }}
+                  onDelete={async () => {
                     spacesContext.deleteSpace(space.id);
                   }}
-                  onRecover={() => {
-                    spacesContext.recoverFromTrash(space.id);
+                  onRecoverFromTrash={() => {
+                    return spacesContext.updateSpace(
+                      space,
+                      undefined,
+                      undefined,
+                      false
+                    );
                   }}
                 />
               );

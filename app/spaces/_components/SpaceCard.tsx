@@ -1,30 +1,67 @@
 import { cn, vibrantColors } from "@/lib/utils";
-import { KeyboardEventHandler, ReactNode, useState } from "react";
-import { X } from "lucide-react";
+import { KeyboardEventHandler, ReactNode, useCallback, useState } from "react";
+import { Loader2, PlusIcon, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { debounce } from "lodash";
+import { Space } from "@prisma/client";
 
 interface SpaceCardProps {
-  children: ReactNode;
-  onClick?: () => void;
-  onDelete?: () => void;
+  space?: Space;
+  onMoveToTrash?: () => Space;
+  onUpdateTitle?: (newTitle: string) => Space;
+  onSave?: (space: Space) => Promise<void>;
+  onCreate?: () => Promise<void>;
+  onChangeRoute?: () => void;
   className?: string;
   backgroundColor?: string;
+  isAddCard?: boolean;
 }
 
 export default function SpaceCard({
-  children,
-  onClick,
-  onDelete,
+  space,
+  onMoveToTrash,
+  onUpdateTitle,
+  onSave,
+  onCreate,
+  onChangeRoute,
   className,
   backgroundColor = vibrantColors[0],
+  isAddCard,
 }: SpaceCardProps) {
   const [showTool, setShowTool] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isEditing, setEditing] = useState(false);
+
+  const debouncedSave = useCallback(
+    debounce(async (space: Space) => {
+      if (onSave) {
+        setIsSaving(true);
+        await onSave(space);
+        setIsSaving(false);
+      }
+    }, 300),
+    []
+  );
+  const internalOnMoveToTrash = () => {
+    if (onMoveToTrash) {
+      const space = onMoveToTrash();
+      debouncedSave(space);
+    }
+  };
+  const internalOnCreate = () => {
+    if (onCreate) {
+      setIsSaving(true);
+      onCreate().then(() => {
+        setIsSaving(false);
+      });
+    }
+  };
+
   return (
     <div
-      role="button"
-      onClick={onClick}
       className={cn(
-        "aspect-video shrink-0 relative rounded-sm flex flex-col gap-y-1 items-center justify-center hover:opacity-90 hover:scale-110 transition shadow-md",
+        "aspect-video shrink-0 relative rounded-sm flex flex-col gap-y-1 items-center justify-center transition shadow-md",
+        !isAddCard && "hover:opacity-90 hover:scale-110",
         className
       )}
       onMouseEnter={() => {
@@ -35,22 +72,61 @@ export default function SpaceCard({
       }}
     >
       <div
-        className="absolute top-0 left-0 -z-[1] w-full h-full"
+        className="absolute top-0 left-0 -z-[999] w-full h-full"
         style={{ backgroundColor: backgroundColor }}
+        onClick={onChangeRoute}
       />
-      {children}
-      {showTool && onDelete && (
+      {!isAddCard && space && (
+        <SpaceCardEditableContent
+          value={space.title}
+          onChange={onUpdateTitle}
+          onSave={() => {
+            debouncedSave(space);
+          }}
+          isSaving={isSaving}
+          isEditing={isEditing}
+          setEditing={setEditing}
+        />
+      )}
+
+      {!isAddCard &&
+        space &&
+        !isEditing &&
+        !isSaving &&
+        showTool &&
+        onMoveToTrash && (
+          <Button
+            asChild
+            variant="outline"
+            className={cn(
+              "absolute top-0 right-0 bg-transparent w-8 h-8 p-0 m-1 border-none"
+            )}
+            onClick={internalOnMoveToTrash}
+          >
+            <X
+              className={cn(
+                "w-auto h-auto",
+                "transition-transform ease-in-out duration-300",
+                "hover:scale-125"
+              )}
+            />
+          </Button>
+        )}
+
+      {isAddCard && (
+        <SpaceCardAddContent onCreate={internalOnCreate} isSaving={isSaving} />
+      )}
+      {!isAddCard && isSaving && (
         <Button
           asChild
           variant="outline"
           className={cn(
             "absolute top-0 right-0 bg-transparent w-8 h-8 p-0 m-1 border-none"
           )}
-          onClick={onDelete}
         >
-          <X
+          <Loader2
             className={cn(
-              "w-auto h-auto",
+              "w-auto h-auto animate-spin",
               "transition-transform ease-in-out duration-300",
               "hover:scale-125"
             )}
@@ -61,34 +137,70 @@ export default function SpaceCard({
   );
 }
 
+interface SpaceCardAddContentProps {
+  onCreate?: () => void;
+  isSaving?: boolean;
+}
+
+export function SpaceCardAddContent({
+  onCreate,
+  isSaving,
+}: SpaceCardAddContentProps) {
+  return isSaving ? (
+    <Loader2 className="w-10 h-10 text-gray-500 animate-spin" />
+  ) : (
+    <Button
+      asChild
+      variant="outline"
+      className={cn(
+        "w-10 h-10 bg-transparent",
+        "transition-transform ease-in-out duration-300",
+        "hover:scale-125"
+      )}
+      onClick={onCreate}
+    >
+      <PlusIcon className="w-auto h-auto text-gray-500" />
+    </Button>
+  );
+}
+
 interface SpaceCardEditableContentProps {
   value: string | null;
-  onChange: (value: string) => void;
-  initEditing?: boolean;
+  onChange?: (value: string) => void;
+  onSave?: () => void;
+  isSaving?: boolean;
+  isEditing?: boolean;
+  setEditing?: (b: boolean) => void;
   className?: string;
 }
+
 export function SpaceCardEditableContent({
   value,
   onChange,
-  initEditing = false,
+  onSave,
+  isSaving,
+  isEditing,
+  setEditing,
   className,
 }: SpaceCardEditableContentProps) {
-  const [isEditing, setEditing] = useState(initEditing);
-
   const handleDoubleClick = () => {
-    setEditing(true);
+    if (onChange && setEditing) {
+      setEditing(true);
+    }
   };
   const handleBlur = () => {
-    setEditing(false);
+    setEditing && setEditing(false);
+    onSave && onSave();
   };
   const handleKeyDown: KeyboardEventHandler<HTMLInputElement> = (event) => {
     if (event.key === "Enter") {
       event.preventDefault();
-      setEditing(false);
+      setEditing && setEditing(false);
+      onSave && onSave();
     }
   };
 
-  return isEditing ? (
+  return onChange && isEditing && !isSaving ? (
     <input
       className={cn("text-xl font-bold text-center p-2 w-[90%]", className)}
       value={value || ""}
@@ -99,8 +211,8 @@ export function SpaceCardEditableContent({
     />
   ) : (
     <span
+      className={cn("text-xl font-bold p-0 m-0", className)}
       onDoubleClick={handleDoubleClick}
-      className={cn("text-xl font-bold", className)}
     >
       {value || "无标题"}
     </span>

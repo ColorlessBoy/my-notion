@@ -1,13 +1,11 @@
 "use client";
 import * as db from "@/db";
-import { SPACE_URL } from "@/routes";
 import { Space } from "@prisma/client";
 import { useRouter, useParams } from "next/navigation";
 import {
   ReactNode,
   createContext,
   useEffect,
-  useMemo,
   useState,
   useTransition,
 } from "react";
@@ -19,15 +17,28 @@ function log(name: string, obj?: any) {
 // 定义上下文的数据结构
 interface SpacesContextType {
   spaces: Space[];
-  isInit: boolean;
-  isPending: boolean;
-  createSpace: (title?: string, content?: string) => void;
-  updateSpace: (id: string, title?: string, content?: string) => void;
-  deleteSpace: (id: string) => void;
-  moveToTrash: (id: string) => void;
-  recoverFromTrash: (id: string) => void;
+  isLoading: boolean;
 
-  choosedSpace: Space | undefined;
+  createSpace: (title?: string, content?: string) => Promise<void>;
+  deleteSpace: (id: string) => Promise<void>;
+  saveSpace: (space: Space) => Promise<void>;
+  updateSpace: (
+    space: Space,
+    title?: string,
+    content?: string,
+    isDeleted?: boolean
+  ) => Space;
+
+  /*
+  notesMap: Record<string, Note[]>;
+
+  tocMap: Record<string, TreeItem[]>;
+  fetchToc: (spaceId: string) => Promise<TreeItem[]>;
+  getToc: (spaceId: string) => TreeItem[];
+  setToc: (spaceId: string, newTreeItems: TreeItem[]) => void;
+  tocCreateNewChild: (spaceId: string, noteId?: string) => Promise<void>;
+  tocUpdateTitle: (spaceId: string, noteId: string, newTitle: string) => void;
+  */
 }
 
 export const SpacesContext = createContext<SpacesContextType | undefined>(
@@ -41,104 +52,71 @@ interface SpacesProviderProps {
 
 export const SpacesProvider = ({ userId, children }: SpacesProviderProps) => {
   const [spaces, setSpaces] = useState<Space[]>([]);
-  const [isIniting, startInit] = useTransition();
-  const [isPending, startTransition] = useTransition();
-  const { spaceId } = useParams<{ spaceId?: string }>();
-  const router = useRouter();
+  // const [tocMap, setTocMap] = useState<Record<string, TreeItem[]>>({});
+  // const [notesMap, setNotesMap] = useState<Record<string, Note[]>>({});
 
-  const choosedSpace = useMemo(() => {
-    const space = spaces.find((e) => e.id === spaceId);
-    return space;
-  }, [spaceId, spaces]);
-
+  const [isLoading, load] = useTransition();
+  // 初始化
   useEffect(() => {
-    startInit(async () => {
+    load(async () => {
       await db.space.$getAll(userId).then((spaces) => {
         setSpaces(spaces);
       });
     });
-  }, [userId, spaceId]);
+  }, [userId]);
 
-  const createSpace = (title?: string, content?: string) => {
+  const createSpace = async (title?: string, content?: string) => {
     log("createSpace", { userId, title, content });
-    if (isPending) {
-      return;
-    }
-    startTransition(async () => {
-      await db.space.$create(userId, title, content).then((space) => {
-        if (space) {
-          setSpaces([...spaces, space]);
-        }
-      });
+    await db.space.$create(userId, title, content).then((space) => {
+      if (space) {
+        setSpaces([...spaces, space]);
+      }
     });
   };
-  const deleteSpace = (id: string) => {
+
+  const deleteSpace = async (id: string) => {
     log("deleteSpace", { id });
-    if (isPending) {
-      return;
-    }
     const index = spaces.findIndex((space) => space.id === id);
     if (index === -1) {
       return;
     }
-    startTransition(async () => {
-      const deleteSpaceId = spaces.at(index)?.id;
-      if (deleteSpaceId === undefined) {
-        return;
-      }
-      const newSpaces = [...spaces];
-      newSpaces.splice(index, 1);
-      setSpaces(newSpaces);
-      if (spaceId === deleteSpaceId) {
-        router.push(`${SPACE_URL}`);
-      }
-      await db.space.$delete(deleteSpaceId);
-    });
-  };
-  const recoverFromTrash = (id: string) => {
-    log("recoverFromTrash", { id });
-    if (isPending) {
+    const deleteSpaceId = spaces.at(index)?.id;
+    if (deleteSpaceId === undefined) {
       return;
     }
     const newSpaces = [...spaces];
-    const index = spaces.findIndex((space) => space.id === id);
-    if (index === -1) {
-      return;
-    }
-    newSpaces[index] = { ...spaces[index], isDeleted: false };
+    newSpaces.splice(index, 1);
     setSpaces(newSpaces);
-    startTransition(async () => {
-      await db.space.$update(id, undefined, undefined, false);
-    });
+    await db.space.$delete(deleteSpaceId);
   };
-  const moveToTrash = (id: string) => {
-    log("moveToTrash", { id });
-    if (isPending) {
-      return;
+
+  const saveSpace = async (space: Space) => {
+    log("saveSpace", { space });
+    await db.space.$update(
+      space.id,
+      space.title,
+      space.content,
+      space.isDeleted
+    );
+  };
+  const updateSpace = (
+    space: Space,
+    title?: string,
+    content?: string,
+    isDeleted?: boolean
+  ) => {
+    log("updateSpace", { space, title, content, isDeleted });
+    if (
+      title === undefined &&
+      content === undefined &&
+      isDeleted === undefined
+    ) {
+      return space;
     }
     const newSpaces = [...spaces];
-    const index = spaces.findIndex((space) => space.id === id);
+    const index = spaces.findIndex((s) => s.id === space.id);
     if (index === -1) {
-      return;
-    }
-    newSpaces[index] = { ...spaces[index], isDeleted: true };
-    setSpaces(newSpaces);
-    startTransition(async () => {
-      await db.space.$update(id, undefined, undefined, true);
-    });
-  };
-  const updateSpace = (id: string, title?: string, content?: string) => {
-    log("updateSpace", { id, title, content });
-    if (isPending) {
-      return;
-    }
-    if (title === undefined && content === undefined) {
-      return;
-    }
-    const newSpaces = [...spaces];
-    const index = spaces.findIndex((space) => space.id === id);
-    if (index === -1) {
-      return;
+      return space;
     }
     newSpaces[index] = { ...spaces[index] };
     if (title !== undefined) {
@@ -147,24 +125,111 @@ export const SpacesProvider = ({ userId, children }: SpacesProviderProps) => {
     if (content !== undefined) {
       newSpaces[index].content = content;
     }
+    if (isDeleted !== undefined) {
+      newSpaces[index].isDeleted = isDeleted;
+    }
     setSpaces(newSpaces);
-    startTransition(async () => {
-      await db.space.$update(id, title, content);
-    });
+    return newSpaces[index];
   };
+
+  /*
+  const createNote = async (spaceId: string) => {
+    log("createNote", spaceId);
+    const note = await db.note.$create(spaceId);
+    if (note !== null) {
+      let noteList = notesMap[spaceId];
+      if (!noteList) {
+        noteList = [note];
+      } else {
+        noteList = [...noteList, note];
+      }
+      setNotesMap({ ...notesMap, [spaceId]: noteList });
+    }
+    return note;
+  };
+  const updateNoteTitle = (
+    spaceId: string,
+    noteId: string,
+    newTitle: string
+  ) => {
+    log("updateNoteTitle", spaceId);
+    const noteList = notesMap[spaceId];
+    if (noteList) {
+      const index = noteList.findIndex((note) => note.id === noteId);
+      if (index !== -1) {
+        const newNoteList = [...noteList];
+        newNoteList[index] = { ...noteList[index], title: newTitle };
+        setNotesMap({ ...notesMap, [spaceId]: newNoteList });
+        db.note.$update(noteId, newTitle);
+      }
+    }
+  };
+  const fetchToc = async (spaceId: string) => {
+    log("fetchToc", spaceId);
+    const result = tocMap[spaceId];
+    if (!result) {
+      const toc = await db.tableOfContent.$getLatest(spaceId);
+      if (toc !== null && toc.content !== null) {
+        const newItems = JSON.parse(toc.content) as TreeItem[];
+        const newTocMap = { ...tocMap, [spaceId]: newItems };
+        setTocMap(newTocMap);
+        return newItems;
+      }
+    }
+    return result;
+  };
+
+  const getToc = (spaceId: string) => {
+    log("getToc", spaceId);
+    return tocMap[spaceId] || [];
+  };
+
+  const setToc = (spaceId: string, newItems: TreeItem[]) => {
+    log("setToc", spaceId);
+    const newTocMap = { ...tocMap, [spaceId]: newItems };
+    setTocMap(newTocMap);
+    // 总是设置新的toc，定时清除
+    db.tableOfContent.$create(spaceId, JSON.stringify(newItems));
+  };
+
+  const tocCreateNewChild = async (spaceId: string, noteId?: string) => {
+    log("tocCreateNewChild", spaceId);
+    const newNote = await createNote(spaceId);
+    const newItem = newNote
+      ? {
+          id: newNote.id,
+          title: newNote.title || "",
+          children: [] as TreeItem[],
+          collapsed: false,
+        }
+      : undefined;
+    const toc = getToc(spaceId);
+    const newToc = createNewChild(toc, noteId, newItem);
+    const newTocMap = { ...tocMap, [spaceId]: newToc };
+    setTocMap(newTocMap);
+  };
+
+  const tocUpdateTitle = (spaceId: string, noteId: string, title: string) => {
+    log("tocCreateNewChild", spaceId);
+    const toc = getToc(spaceId);
+    const newToc = [...toc];
+    setProperty(newToc, noteId, "title", (_) => {
+      return title;
+    });
+    updateNoteTitle(spaceId, noteId, title);
+    setToc(spaceId, newToc);
+  };
+  */
 
   return (
     <SpacesContext.Provider
       value={{
         spaces,
-        isInit: isIniting,
-        isPending,
+        isLoading,
         createSpace,
-        updateSpace,
         deleteSpace,
-        moveToTrash,
-        recoverFromTrash,
-        choosedSpace,
+        saveSpace,
+        updateSpace,
       }}
     >
       {children}

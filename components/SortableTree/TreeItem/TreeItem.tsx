@@ -31,6 +31,7 @@ export interface Props extends Omit<HTMLAttributes<HTMLLIElement>, "id"> {
   onCreate?(): void;
   onRemove?(): void;
   wrapperRef?(node: HTMLLIElement): void;
+  onSave?(): void;
 }
 
 export const TreeItem = forwardRef<HTMLDivElement, Props>(
@@ -50,6 +51,7 @@ export const TreeItem = forwardRef<HTMLDivElement, Props>(
       onCreate,
       onChangeTitle,
       onRemove,
+      onSave,
       style,
       value,
       wrapperRef,
@@ -69,6 +71,7 @@ export const TreeItem = forwardRef<HTMLDivElement, Props>(
     const handleBlur = () => {
       if (onChangeTitle) {
         setIsEditing(false);
+        onSave && onSave();
       }
     };
 
@@ -76,6 +79,7 @@ export const TreeItem = forwardRef<HTMLDivElement, Props>(
       if (onChangeTitle && event.key === "Enter") {
         event.preventDefault();
         setIsEditing(false);
+        onSave && onSave();
       }
     };
 

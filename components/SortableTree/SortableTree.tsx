@@ -35,7 +35,6 @@ import {
   removeItem,
   removeChildrenOf,
   setProperty,
-  createNewChild,
 } from "./utilities";
 import type { FlattenedItem, SensorContext, TreeItem } from "./types";
 import { sortableTreeKeyboardCoordinates } from "./keyboardCoordinates";
@@ -73,13 +72,15 @@ const dropAnimationConfig: DropAnimation = {
 
 interface Props {
   items: TreeItem[];
-  setItems: (newItems: TreeItem[]) => void;
+  setItems?: (newItems: TreeItem[]) => void;
   collapsible?: boolean;
   indicator?: boolean;
   creatable?: boolean;
   editable?: boolean;
   removable?: boolean;
   indentationWidth?: number;
+  createNewChild?: (id?: UniqueIdentifier) => void;
+  updateTitle?: (id: UniqueIdentifier, title: string) => void;
 }
 
 export function SortableTree({
@@ -91,6 +92,8 @@ export function SortableTree({
   editable,
   removable,
   indentationWidth = 16,
+  createNewChild,
+  updateTitle,
 }: Props) {
   const [isMounted, setMounted] = useState(false);
   const [activeId, setActiveId] = useState<UniqueIdentifier | null>(null);
@@ -221,6 +224,7 @@ export function SortableTree({
                 : undefined
             }
             onRemove={removable ? () => handleRemove(id) : undefined}
+            onSave={() => setItems && setItems(items)}
           />
         ))}
         {createPortal(
@@ -286,7 +290,7 @@ export function SortableTree({
       const sortedItems = arrayMove(clonedItems, activeIndex, overIndex);
       const newItems = buildTree(sortedItems);
 
-      setItems(newItems);
+      setItems && setItems(newItems);
     }
   }
 
@@ -304,19 +308,20 @@ export function SortableTree({
   }
 
   function handleCreateNewChild(id: UniqueIdentifier) {
-    setItems(createNewChild(items, id));
+    if (createNewChild) {
+      createNewChild(id);
+    }
   }
 
   function handleUpdateTitle(id: UniqueIdentifier, title: string) {
-    const newItems = [...items];
-    setProperty(newItems, id, "title", (_) => {
-      return title;
-    });
-    setItems(newItems);
+    if (updateTitle) {
+      updateTitle(id, title);
+    }
   }
 
   function handleRemove(id: UniqueIdentifier) {
-    setItems(removeItem(items, id));
+    const removed = removeItem(items, id);
+    setItems && setItems(removed);
   }
 
   function handleCollapse(id: UniqueIdentifier) {
@@ -324,7 +329,7 @@ export function SortableTree({
     setProperty(newItems, id, "collapsed", (value) => {
       return !value;
     });
-    setItems(newItems);
+    setItems && setItems(newItems);
   }
 
   function getMovementAnnouncement(
@@ -363,7 +368,7 @@ export function SortableTree({
 
       if (!previousItem) {
         const nextItem = sortedItems[overIndex + 1];
-        announcement = `${activeId} was ${movedVerb} before ${nextItem.id}.`;
+        announcement = `${activeId} was ${movedVerb} before ${nextItem?.id}.`;
       } else {
         if (projected.depth > previousItem.depth) {
           announcement = `${activeId} was ${nestedVerb} under ${previousItem.id}.`;

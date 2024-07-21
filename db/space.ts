@@ -57,9 +57,9 @@ export async function $delete(id: string) {
 
 export async function $update(
   id: string,
-  title?: string,
-  content?: string,
-  isDeleted?: boolean
+  title?: string | null,
+  content?: string | null,
+  isDeleted?: boolean | null
 ) {
   try {
     log("$update", { id, title, content, isDeleted });
