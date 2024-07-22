@@ -17,6 +17,7 @@ import { cn } from "@/lib/utils";
 import { useParams, useRouter } from "next/navigation";
 import { Space } from "@prisma/client";
 import { TreeItem } from "../SortableTree/types";
+import { UniqueIdentifier } from "@dnd-kit/core";
 
 export function SidebarContent() {
   return (
@@ -75,7 +76,10 @@ export function CreateNewSpaceButton() {
 
 export function SpaceList() {
   const spacesContext = useContext(SpacesContext);
-  const { spaceId } = useParams<{ spaceId?: string }>();
+  const { spaceId, noteId } = useParams<{
+    spaceId?: string;
+    noteId?: string;
+  }>();
   const router = useRouter();
   if (spacesContext === undefined || spacesContext?.isLoading) {
     return (
@@ -122,6 +126,10 @@ export function SpaceList() {
           onSaveItems={(items: TreeItem[]) =>
             spacesContext.saveToc(space.id, items)
           }
+          onChangeItemRoute={(noteId: UniqueIdentifier) => {
+            router.push(`${SPACE_URL}/${space.id}/${noteId}`);
+          }}
+          selectedNoteId={noteId}
         />
       );
     });

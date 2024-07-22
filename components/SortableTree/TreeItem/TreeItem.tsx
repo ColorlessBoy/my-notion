@@ -14,6 +14,7 @@ import { Delete } from "./Delete";
 import { Collapse } from "./Collapse";
 import { Create } from "./Create";
 import { Loader2 } from "lucide-react";
+import { UniqueIdentifier } from "@dnd-kit/core";
 
 export interface Props extends Omit<HTMLAttributes<HTMLLIElement>, "id"> {
   childCount?: number;
@@ -39,6 +40,12 @@ export interface Props extends Omit<HTMLAttributes<HTMLLIElement>, "id"> {
   onSaveTitle?(): void;
 
   draggable?: boolean;
+
+  onChangeRoute?(): void;
+
+  selectedId?(): UniqueIdentifier;
+
+  isActive?: boolean;
 }
 
 export const TreeItem = forwardRef<HTMLDivElement, Props>(
@@ -62,6 +69,12 @@ export const TreeItem = forwardRef<HTMLDivElement, Props>(
       onUpdateTitle,
       onSaveTitle,
       draggable,
+
+      onChangeRoute,
+
+      selectedId,
+
+      isActive,
 
       style,
       value,
@@ -134,7 +147,11 @@ export const TreeItem = forwardRef<HTMLDivElement, Props>(
               autoFocus
             />
           ) : (
-            <span onDoubleClick={handleDoubleClick} className={cn(styles.Text)}>
+            <span
+              onDoubleClick={handleDoubleClick}
+              onClick={onChangeRoute}
+              className={cn(styles.Text, isActive && "bg-gray-200")}
+            >
               {value || "无标题"}
             </span>
           )}

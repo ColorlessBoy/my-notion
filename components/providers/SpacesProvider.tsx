@@ -137,9 +137,9 @@ export const SpacesProvider = ({ userId, children }: SpacesProviderProps) => {
   };
 
   const fetchNote = async (spaceId: string, noteId: string) => {
-    let spaceNoteList = [...notesMap[spaceId]];
-    if (!spaceNoteList) {
-      spaceNoteList = [];
+    let spaceNoteList: Note[] = [];
+    if (spaceId in notesMap) {
+      spaceNoteList = [...notesMap[spaceId]];
     }
     const note = spaceNoteList.find((n) => n.id === noteId);
     if (note) {
@@ -185,8 +185,7 @@ export const SpacesProvider = ({ userId, children }: SpacesProviderProps) => {
   };
   const saveNote = async (spaceId: string, noteId: string) => {
     log("saveNote", { spaceId, noteId });
-    const noteList = notesMap[spaceId];
-    const note = noteList.find((note) => note.id === noteId);
+    const note = await fetchNote(spaceId, noteId);
     if (note) {
       await db.note.$update(note.id, note.title, note.content);
     }

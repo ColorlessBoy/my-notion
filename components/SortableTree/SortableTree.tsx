@@ -93,6 +93,10 @@ interface Props {
 
   onSaveItems?: (items: TreeItem[]) => Promise<void>;
   onSaveItem?: (item: TreeItem) => void;
+
+  onChangeRoute?: (id: UniqueIdentifier) => void;
+
+  selectedId?: UniqueIdentifier;
 }
 
 export function SortableTree({
@@ -109,6 +113,9 @@ export function SortableTree({
   onUpdateTitle,
   onSaveItems,
   onSaveItem,
+  onChangeRoute,
+
+  selectedId,
 }: Props) {
   const [isMounted, setMounted] = useState(false);
   const [activeId, setActiveId] = useState<UniqueIdentifier | null>(null);
@@ -227,6 +234,14 @@ export function SortableTree({
             }
             onSaveTitle={() => handleSaveTitle(item)}
             draggable={draggable}
+            isActive={selectedId === item.id}
+            onChangeRoute={
+              onChangeRoute
+                ? () => {
+                    onChangeRoute(item.id);
+                  }
+                : undefined
+            }
           />
         ))}
         {createPortal(

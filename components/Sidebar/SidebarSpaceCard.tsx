@@ -33,6 +33,9 @@ interface SidebarSpaceCardProps {
   onUpdateItemTitle?: (noteId: UniqueIdentifier, newTitle: string) => void;
   onSaveItems?: (items: TreeItem[]) => Promise<void>;
   onSaveItem?: (item: TreeItem) => void;
+  onChangeItemRoute?: (noteId: UniqueIdentifier) => void;
+
+  selectedNoteId?: UniqueIdentifier;
 }
 
 export function SidebarSpaceCard({
@@ -56,6 +59,9 @@ export function SidebarSpaceCard({
   onUpdateItemTitle,
   onSaveItem,
   onSaveItems,
+  onChangeItemRoute,
+
+  selectedNoteId,
 }: SidebarSpaceCardProps) {
   const [showTool, setShowTool] = useState(false);
   const [isEditing, setEditing] = useState(false);
@@ -190,6 +196,8 @@ export function SidebarSpaceCard({
             onUpdateTitle={onUpdateItemTitle}
             onSaveItem={onSaveItem}
             onSaveItems={onSaveItems}
+            onChangeRoute={onChangeItemRoute}
+            selectedId={selectedNoteId}
           />
         </div>
       )}
