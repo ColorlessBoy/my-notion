@@ -1,11 +1,46 @@
 "use client"; // this registers <Editor> as a Client Component
 import "@blocknote/core/fonts/inter.css";
 import { BlockNoteView } from "@blocknote/mantine";
-import { BlockNoteEditor, PartialBlock } from "@blocknote/core";
+import {
+  BlockNoteEditor,
+  BlockNoteSchema,
+  defaultBlockSpecs,
+  filterSuggestionItems,
+  insertOrUpdateBlock,
+  PartialBlock,
+} from "@blocknote/core";
 import "@blocknote/mantine/style.css";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { debounce } from "lodash";
 import "./style.css";
+import { FollowCodeBlock } from "./FollowCodeBlock";
+import { FollowIcon } from "../FollowIcon";
+import {
+  getDefaultReactSlashMenuItems,
+  SuggestionMenuController,
+} from "@blocknote/react";
+
+const schema = BlockNoteSchema.create({
+  blockSpecs: {
+    // Adds all default blocks.
+    ...defaultBlockSpecs,
+    // Adds the Alert block.
+    follow: FollowCodeBlock,
+  },
+});
+// Slash menu item to insert an Alert block
+const insertFollowCodeBlock = (editor: typeof schema.BlockNoteEditor) => ({
+  title: "Follow",
+  onItemClick: () => {
+    insertOrUpdateBlock(editor, {
+      type: "follow",
+    });
+  },
+  aliases: ["follow"],
+  group: "Other",
+  icon: <FollowIcon />,
+  subtext: "Insert a follow code block.",
+});
 
 // Our <Editor> component we can reuse later
 export default function BlockNote({
@@ -17,10 +52,10 @@ export default function BlockNote({
 }) {
   const editor = useMemo(() => {
     const blocks = content ? (JSON.parse(content) as PartialBlock[]) : [];
-    if (blocks) {
-      return BlockNoteEditor.create({ initialContent: blocks });
+    if (blocks && blocks.length > 0) {
+      return BlockNoteEditor.create({ initialContent: blocks, schema });
     } else {
-      return BlockNoteEditor.create();
+      return BlockNoteEditor.create({ schema });
     }
   }, []);
 
@@ -41,13 +76,29 @@ export default function BlockNote({
       <BlockNoteView
         editor={editor}
         onChange={() => {
+          //@ts-ignore
           updateContent(editor.document);
         }}
         theme={"light"}
         style={{
           display: "flex",
         }}
-      />
+        slashMenu={false}
+      >
+        <SuggestionMenuController
+          triggerCharacter={"/"}
+          getItems={async (query) =>
+            // Gets all default slash menu items and `insertAlert` item.
+            filterSuggestionItems(
+              [
+                ...getDefaultReactSlashMenuItems(editor),
+                insertFollowCodeBlock(editor),
+              ],
+              query
+            )
+          }
+        />
+      </BlockNoteView>
     </div>
   );
 }
