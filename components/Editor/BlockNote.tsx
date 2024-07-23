@@ -13,7 +13,7 @@ import "@blocknote/mantine/style.css";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { debounce } from "lodash";
 import "./style.css";
-import { FollowCodeBlock } from "./FollowCodeBlock";
+import { FollowCodeBlockForNote } from "./FollowCodeBlockForNote";
 import { FollowIcon } from "../FollowIcon";
 import {
   getDefaultReactSlashMenuItems,
@@ -25,7 +25,7 @@ const schema = BlockNoteSchema.create({
     // Adds all default blocks.
     ...defaultBlockSpecs,
     // Adds the Alert block.
-    follow: FollowCodeBlock,
+    follow: FollowCodeBlockForNote,
   },
 });
 // Slash menu item to insert an Alert block
@@ -53,6 +53,7 @@ export default function BlockNote({
   const editor = useMemo(() => {
     const blocks = content ? (JSON.parse(content) as PartialBlock[]) : [];
     if (blocks && blocks.length > 0) {
+      console.log(blocks.map((b) => b.content));
       return BlockNoteEditor.create({ initialContent: blocks, schema });
     } else {
       return BlockNoteEditor.create({ schema });

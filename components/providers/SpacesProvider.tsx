@@ -9,7 +9,14 @@ import {
   useTransition,
 } from "react";
 import { TreeItem } from "../SortableTree/types";
-import { setProperty } from "../SortableTree/utilities";
+import {
+  dfsFlatten,
+  flattenTree,
+  setProperty,
+} from "../SortableTree/utilities";
+import { getCompiler } from "@/lib/compiler";
+import { CompileInfo } from "@/lib/follow-parser";
+import { PartialBlock } from "@blocknote/core";
 
 function log(name: string, obj?: any) {
   console.log(`[providers][space][${name}]`, obj);
@@ -52,6 +59,13 @@ interface SpacesContextType {
 
   updateTocTitle: (spaceId: string, noteId: string, newTitle: string) => void;
   saveToc2: (spaceId: string) => Promise<void>;
+
+  compile: (
+    spaceId: string,
+    noteId: string,
+    blockIe: string,
+    code: string
+  ) => CompileInfo;
 }
 
 export const SpacesContext = createContext<SpacesContextType | undefined>(
@@ -150,8 +164,28 @@ export const SpacesProvider = ({ userId, children }: SpacesProviderProps) => {
     if (spaceId in notesMap) {
       spaceNoteList = [...notesMap[spaceId]];
     }
+    const compiler = getCompiler(spaceId);
     const note = spaceNoteList.find((n) => n.id === noteId);
     if (note) {
+      if (note.content && note.content.length > 2) {
+        const blocks = JSON.parse(note.content) as PartialBlock[];
+        const validBlocks = blocks.filter(
+          //@ts-ignore
+          (block) => block.type === "follow"
+          //@ts-ignore
+        ) as ParitialBlock[];
+        const blockIds = validBlocks.map((b) => b.id as string);
+        compiler.setBlockIdList(noteId, blockIds);
+        for (const block of validBlocks) {
+          if (block.type === "follow") {
+            compiler.compileCode(
+              noteId,
+              block.id,
+              block.props?.data?.code || ""
+            );
+          }
+        }
+      }
       return note;
     }
     const noteFromDb = await db.note.$get(noteId);
@@ -241,6 +275,12 @@ export const SpacesProvider = ({ userId, children }: SpacesProviderProps) => {
       if (toc !== null && toc.content !== null) {
         const newItems = JSON.parse(toc.content) as TreeItem[];
         log("fetchToc", { newItems });
+        const noteIds = dfsFlatten(newItems).map((item) => item.id as string);
+        const compiler = getCompiler(spaceId);
+        compiler.setNoteIdList(noteIds);
+        for (const noteId of noteIds) {
+          await fetchNote(spaceId, noteId as string);
+        }
         return newItems;
       }
     }
@@ -286,6 +326,16 @@ export const SpacesProvider = ({ userId, children }: SpacesProviderProps) => {
     }
   };
 
+  const compile = (
+    spaceId: string,
+    noteId: string,
+    blockId: string,
+    code: string
+  ) => {
+    const rst = getCompiler(spaceId).compileCode(noteId, blockId, code);
+    return rst;
+  };
+
   return (
     <SpacesContext.Provider
       value={{
@@ -311,6 +361,8 @@ export const SpacesProvider = ({ userId, children }: SpacesProviderProps) => {
 
         updateTocTitle,
         saveToc2,
+
+        compile,
       }}
     >
       {children}

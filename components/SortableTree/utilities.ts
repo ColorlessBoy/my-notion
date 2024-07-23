@@ -90,6 +90,14 @@ function flatten(
   }, []);
 }
 
+export function dfsFlatten(items: TreeItem[]) {
+  const result: TreeItem[] = [];
+  for (const item of items) {
+    result.push(item, ...dfsFlatten(item.children));
+  }
+  return result;
+}
+
 export function flattenTree(items: TreeItem[]): FlattenedItem[] {
   return flatten(items);
 }
