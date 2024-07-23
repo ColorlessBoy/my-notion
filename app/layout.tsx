@@ -9,7 +9,7 @@ export const metadata: Metadata = {
   title: "Follow",
   description: "The Follow Language",
   icons: {
-    icon: "/assets/logo/follow-24-white.svg",
+    icon: "/assets/logo/follow-24.svg",
   },
 };
 

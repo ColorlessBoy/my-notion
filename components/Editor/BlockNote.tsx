@@ -18,7 +18,6 @@ export default function BlockNote({
   const editor = useMemo(() => {
     const blocks = content ? (JSON.parse(content) as PartialBlock[]) : [];
     if (blocks) {
-      console.log("block note 初始化");
       return BlockNoteEditor.create({ initialContent: blocks });
     } else {
       return BlockNoteEditor.create();
