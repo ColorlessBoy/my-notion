@@ -56,10 +56,10 @@ export default function NoteTitle({ note }: { note: Note }) {
   };
 
   return (
-    <div className="flex w-full items-center">
+    <div className="flex w-full items-center pl-14">
       {isEditing ? (
         <input
-          className="text-3xl font-bold"
+          className="text-6xl font-bold text-gray-800"
           value={value || ""}
           onChange={(e) => updateTitle(e.target.value)}
           onBlur={handleBlur}
@@ -67,7 +67,10 @@ export default function NoteTitle({ note }: { note: Note }) {
           autoFocus
         />
       ) : (
-        <div className="text-3xl font-bold" onDoubleClick={handleDoubleClick}>
+        <div
+          className="text-6xl font-bold text-gray-800"
+          onDoubleClick={handleDoubleClick}
+        >
           {note.title || "无标题"}
         </div>
       )}{" "}

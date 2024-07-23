@@ -38,6 +38,11 @@ interface SpacesContextType {
 
   updateNoteTitle: (spaceId: string, noteId: string, newTitle: string) => void;
   saveNote: (spaceId: string, noteId: string) => Promise<void>;
+  saveNoteContent: (
+    spaceId: string,
+    noteId: string,
+    content: string
+  ) => Promise<void>;
 
   createTreeItem: (spaceId: string) => Promise<TreeItem | undefined>;
   fetchToc: (spaceId: string) => Promise<TreeItem[]>;
@@ -189,6 +194,25 @@ export const SpacesProvider = ({ userId, children }: SpacesProviderProps) => {
       }
     }
   };
+  const saveNoteContent = async (
+    spaceId: string,
+    noteId: string,
+    newContent: string
+  ) => {
+    log("updateNoteContent", spaceId);
+    const noteList = notesMap[spaceId];
+    if (noteList) {
+      const index = noteList.findIndex((note) => note.id === noteId);
+      if (index !== -1) {
+        const newNoteList = [...noteList];
+        if (noteList[index].content !== newContent) {
+          newNoteList[index] = { ...noteList[index], content: newContent };
+          setNotesMap({ ...notesMap, [spaceId]: newNoteList });
+          await db.note.$update(noteId, undefined, newContent);
+        }
+      }
+    }
+  };
   const saveNote = async (spaceId: string, noteId: string) => {
     log("saveNote", { spaceId, noteId });
     const note = await fetchNote(spaceId, noteId);
@@ -277,6 +301,7 @@ export const SpacesProvider = ({ userId, children }: SpacesProviderProps) => {
 
         tocMap,
         updateNoteTitle,
+        saveNoteContent,
         saveNote,
         createTreeItem,
         fetchToc,
