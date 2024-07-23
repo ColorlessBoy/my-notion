@@ -9,6 +9,7 @@ import {
   useTransition,
 } from "react";
 import { TreeItem } from "../SortableTree/types";
+import { setProperty } from "../SortableTree/utilities";
 
 function log(name: string, obj?: any) {
   console.log(`[providers][space][${name}]`, obj);
@@ -43,6 +44,9 @@ interface SpacesContextType {
   getToc: (spaceId: string) => TreeItem[];
   setToc: (spaceId: string, newItems: TreeItem[]) => void;
   saveToc: (spaceId: string, newItems: TreeItem[]) => Promise<void>;
+
+  updateTocTitle: (spaceId: string, noteId: string, newTitle: string) => void;
+  saveToc2: (spaceId: string) => Promise<void>;
 }
 
 export const SpacesContext = createContext<SpacesContextType | undefined>(
@@ -178,8 +182,10 @@ export const SpacesProvider = ({ userId, children }: SpacesProviderProps) => {
       const index = noteList.findIndex((note) => note.id === noteId);
       if (index !== -1) {
         const newNoteList = [...noteList];
-        newNoteList[index] = { ...noteList[index], title: newTitle };
-        setNotesMap({ ...notesMap, [spaceId]: newNoteList });
+        if (noteList[index].title !== newTitle) {
+          newNoteList[index] = { ...noteList[index], title: newTitle };
+          setNotesMap({ ...notesMap, [spaceId]: newNoteList });
+        }
       }
     }
   };
@@ -235,6 +241,27 @@ export const SpacesProvider = ({ userId, children }: SpacesProviderProps) => {
     await db.tableOfContent.$create(spaceId, JSON.stringify(newItems));
   };
 
+  const updateTocTitle = async (
+    spaceId: string,
+    noteId: string,
+    newTitle: string
+  ) => {
+    log("updateTocTitle", spaceId);
+    const toc = getToc(spaceId);
+    if (toc) {
+      const newToc = setProperty(toc, noteId, "title", () => newTitle);
+      setToc(spaceId, newToc);
+    }
+  };
+
+  const saveToc2 = async (spaceId: string) => {
+    log("saveToc2");
+    const toc = getToc(spaceId);
+    if (toc) {
+      saveToc(spaceId, toc);
+    }
+  };
+
   return (
     <SpacesContext.Provider
       value={{
@@ -256,6 +283,9 @@ export const SpacesProvider = ({ userId, children }: SpacesProviderProps) => {
         getToc,
         setToc,
         saveToc,
+
+        updateTocTitle,
+        saveToc2,
       }}
     >
       {children}

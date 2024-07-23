@@ -105,7 +105,10 @@ export function SpaceList() {
             return spacesContext.updateSpace(space, undefined, undefined, true);
           }}
           onUpdateTitle={(newTitle: string) => {
-            return spacesContext.updateSpace(space, newTitle);
+            if (newTitle !== space.title) {
+              return spacesContext.updateSpace(space, newTitle);
+            }
+            return space;
           }}
           onChangeRoute={() => {
             router.push(`${SPACE_URL}/${space.id}`);

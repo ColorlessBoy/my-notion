@@ -4,7 +4,14 @@ import { SpacesContext } from "@/components/providers/SpacesProvider";
 import { Note } from "@prisma/client";
 import { Loader2 } from "lucide-react";
 import { useParams } from "next/navigation";
-import { useContext, useEffect, useMemo, useState } from "react";
+import {
+  KeyboardEventHandler,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+import NoteTitle from "./_components/NoteTitle";
 
 export default function SpaceIdPage() {
   const { spaceId, noteId } = useParams<{
@@ -23,15 +30,16 @@ export default function SpaceIdPage() {
       setIsLoading(false);
     }
   }, [context?.notesMap]);
+
   if (isLoading) {
     return <Loader2 className="w-10 h-10 animate-spin" />;
   }
   if (!note) {
-    return <div className="text-lg font-bold">Note Not Found</div>;
+    return <div className="text-lg font-bold">笔记没有找到，或许已删除？</div>;
   }
   return (
     <div className="w-full min-h-full">
-      <div className="text-lg font-bold">{note.title}</div>
+      <NoteTitle note={note} />
     </div>
   );
 }
