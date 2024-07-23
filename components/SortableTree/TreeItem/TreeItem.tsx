@@ -85,25 +85,40 @@ export const TreeItem = forwardRef<HTMLDivElement, Props>(
   ) => {
     const [showTools, setShowTools] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
+    const [oldValue, setOldValue] = useState("");
 
     const handleDoubleClick = () => {
       if (onUpdateTitle) {
         setIsEditing(true);
+        setOldValue(value);
       }
     };
 
     const handleBlur = () => {
       if (onUpdateTitle) {
         setIsEditing(false);
-        onSaveTitle && onSaveTitle();
+        if (onSaveTitle && value !== oldValue) {
+          onSaveTitle();
+        }
+        setOldValue("");
       }
     };
 
     const handleKeyDown: KeyboardEventHandler<HTMLInputElement> = (event) => {
-      if (onUpdateTitle && event.key === "Enter") {
-        event.preventDefault();
-        setIsEditing(false);
-        onSaveTitle && onSaveTitle();
+      if (onUpdateTitle) {
+        if (event.key === "Enter") {
+          event.preventDefault();
+          setIsEditing(false);
+          if (onSaveTitle && value !== oldValue) {
+            onSaveTitle();
+          }
+          setOldValue("");
+        } else if (event.key === "Escape") {
+          event.preventDefault();
+          setIsEditing(false);
+          onUpdateTitle && onUpdateTitle(oldValue);
+          setOldValue("");
+        }
       }
     };
 

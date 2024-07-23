@@ -310,20 +310,35 @@ export function SidebarEditContent({
   setEditing?: (b: boolean) => void;
   onClick?: () => void;
 }) {
+  const [oldValue, setOldValue] = useState("");
   const handleDoubleClick = () => {
     if (onChange && setEditing) {
       setEditing(true);
+      setOldValue(value || "");
     }
   };
   const handleBlur = () => {
     setEditing && setEditing(false);
-    onSave && onSave();
+    if (onSave && oldValue !== value) {
+      onSave();
+    }
+    setOldValue("");
   };
   const handleKeyDown: KeyboardEventHandler<HTMLInputElement> = (event) => {
     if (event.key === "Enter") {
       event.preventDefault();
       setEditing && setEditing(false);
-      onSave && onSave();
+      if (onSave && oldValue !== value) {
+        onSave();
+      }
+      setOldValue("");
+    } else if (event.key === "Escape") {
+      if (onChange) {
+        event.preventDefault();
+        onChange(oldValue);
+        setEditing && setEditing(false);
+        setOldValue("");
+      }
     }
   };
   return onChange && isEditing && !isSaving ? (

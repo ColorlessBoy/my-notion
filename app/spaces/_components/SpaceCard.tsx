@@ -183,20 +183,33 @@ export function SpaceCardEditableContent({
   setEditing,
   className,
 }: SpaceCardEditableContentProps) {
+  const [oldValue, setOldValue] = useState("");
   const handleDoubleClick = () => {
     if (onChange && setEditing) {
       setEditing(true);
+      setOldValue(value || "");
     }
   };
   const handleBlur = () => {
     setEditing && setEditing(false);
-    onSave && onSave();
+    if (onSave && oldValue !== value) {
+      onSave();
+    }
+    setOldValue("");
   };
   const handleKeyDown: KeyboardEventHandler<HTMLInputElement> = (event) => {
     if (event.key === "Enter") {
       event.preventDefault();
       setEditing && setEditing(false);
-      onSave && onSave();
+      if (onSave && oldValue !== value) {
+        onSave();
+      }
+      setOldValue("");
+    } else if (event.key === "Escape") {
+      event.preventDefault();
+      setEditing && setEditing(false);
+      onChange && onChange(oldValue);
+      setOldValue("");
     }
   };
 

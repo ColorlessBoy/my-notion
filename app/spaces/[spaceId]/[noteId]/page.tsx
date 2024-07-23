@@ -38,7 +38,7 @@ export default function SpaceIdPage() {
     return <div className="text-lg font-bold">笔记没有找到，或许已删除？</div>;
   }
   return (
-    <div className="w-full min-h-full">
+    <div className="w-full min-h-full mx-10 mb-20">
       <NoteTitle note={note} />
     </div>
   );

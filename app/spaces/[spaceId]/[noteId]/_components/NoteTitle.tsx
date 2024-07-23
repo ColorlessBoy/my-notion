@@ -10,32 +10,34 @@ export default function NoteTitle({ note }: { note: Note }) {
     noteId?: string;
   }>();
   const context = useContext(SpacesContext);
-  const [hasChanged, setHasChanged] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [value, setValue] = useState(note.title);
+  const [oldTitle, setOldTitle] = useState("");
   const handleDoubleClick = () => {
     setIsEditing(true);
+    setOldTitle(value || "");
   };
   const updateTitle = (newTitle: string) => {
     if (context && spaceId && noteId && note) {
       if (note.title !== newTitle) {
         context.updateNoteTitle(spaceId, noteId, newTitle);
         context.updateTocTitle(spaceId, noteId, newTitle);
-        setHasChanged(true);
+        setValue(newTitle);
       }
     }
   };
   const saveTitle = async () => {
-    if (context && spaceId && noteId && hasChanged) {
+    if (context && spaceId && noteId && oldTitle !== note.title) {
+      setIsEditing(false);
       setIsSaving(true);
       await context.saveNote(spaceId, noteId);
       await context.saveToc2(spaceId);
       setIsSaving(false);
-      setHasChanged(false);
+      setOldTitle("");
     }
   };
   const handleBlur = () => {
-    setIsEditing(false);
     saveTitle();
   };
 
@@ -44,26 +46,32 @@ export default function NoteTitle({ note }: { note: Note }) {
       event.preventDefault();
       setIsEditing(false);
       saveTitle();
+      setOldTitle("");
+    } else if (event.key === "Escape") {
+      event.preventDefault();
+      setIsEditing(false);
+      updateTitle(oldTitle);
+      setOldTitle("");
     }
   };
 
   return (
-    <div className="flex w-full">
+    <div className="flex w-full items-center">
       {isEditing ? (
         <input
-          className="text-lg font-bold"
-          value={note.title || ""}
-          onChange={(e) => updateTitle(e.currentTarget.value)}
+          className="text-3xl font-bold"
+          value={value || ""}
+          onChange={(e) => updateTitle(e.target.value)}
           onBlur={handleBlur}
           onKeyDown={handleKeyDown}
           autoFocus
-        ></input>
+        />
       ) : (
-        <div className="text-lg font-bold" onDoubleClick={handleDoubleClick}>
+        <div className="text-3xl font-bold" onDoubleClick={handleDoubleClick}>
           {note.title || "无标题"}
         </div>
       )}{" "}
-      {isSaving && <Loader2 className="p-2 animate-spin" />}
+      {isSaving && <Loader2 className="ml-2 w-7 h-7 animate-spin" />}
     </div>
   );
 }
