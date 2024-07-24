@@ -14,10 +14,18 @@ function logError(name: string, error: any) {
 export async function $getAll(spaceId: string) {
   try {
     log("$getAll", { spaceId });
-    const tocs = prisma.tableOfContent.findMany({
+    let tocs = await prisma.tableOfContent.findMany({
       where: { spaceId },
       orderBy: { createdAt: "asc" },
     });
+    if (tocs.length > 100) {
+      // 超过100 砍掉一半
+      const top = Math.ceil(tocs.length / 2);
+      for (let i = 0; i < top; i++) {
+        await $delete(tocs[i].id);
+      }
+      tocs = tocs.slice(top);
+    }
     return tocs;
   } catch (error) {
     logError("$getAll", error);
@@ -28,10 +36,12 @@ export async function $getAll(spaceId: string) {
 export async function $getLatest(spaceId: string) {
   try {
     log("$getLatest", { spaceId });
-    const toc = prisma.tableOfContent.findFirst({
+    const toc = await prisma.tableOfContent.findFirst({
       where: { spaceId },
       orderBy: { createdAt: "desc" },
     });
+    // 清理toc无需等待
+    $getAll(spaceId);
     return toc;
   } catch (error) {
     logError("$getLatest", error);

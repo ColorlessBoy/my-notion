@@ -14,7 +14,7 @@ function logError(name: string, error: any) {
 export async function $getAll(userId: string) {
   try {
     log("$getAll", { userId });
-    const spaces = prisma.space.findMany({
+    const spaces = await prisma.space.findMany({
       orderBy: { createdAt: "asc" },
     });
     return spaces;

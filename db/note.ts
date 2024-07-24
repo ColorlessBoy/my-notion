@@ -14,7 +14,7 @@ function logError(name: string, error: any) {
 export async function $getAll(spaceId: string) {
   try {
     log("$getAll", { spaceId });
-    const notes = prisma.note.findMany({
+    const notes = await prisma.note.findMany({
       where: { spaceId },
       orderBy: { createdAt: "asc" },
     });
