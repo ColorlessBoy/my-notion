@@ -13,6 +13,8 @@ import {
 } from "react";
 import NoteTitle from "./_components/NoteTitle";
 import dynamic from "next/dynamic";
+import { useSidebarState } from "@/hooks/useSidebarToggle";
+import { cn } from "@/lib/utils";
 
 export default function SpaceIdPage() {
   const { spaceId, noteId } = useParams<{
@@ -29,6 +31,7 @@ export default function SpaceIdPage() {
       }),
     []
   );
+  const isSidebarOpen = useSidebarState((state) => state.isOpen);
 
   useEffect(() => {
     if (context && spaceId && noteId) {
@@ -52,7 +55,12 @@ export default function SpaceIdPage() {
     }
   };
   return (
-    <div className="w-auto min-h-full mx-10 mb-20">
+    <div
+      className={cn(
+        "w-auto min-h-full max-w-[960px] flex-col justify-center",
+        "mb-48 mx-auto"
+      )}
+    >
       <NoteTitle note={note} />
       <BlockNote content={note.content} setContent={saveNoteContent} />
     </div>

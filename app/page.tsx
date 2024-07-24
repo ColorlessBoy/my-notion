@@ -56,7 +56,7 @@ export default function Home() {
           </Link>
         </Button>
       </SidebarWrapper>
-      <main className="relative flex-1 h-full overflow-y-auto items-center justify-center">
+      <main className="relative flex-1 h-[100%] overflow-y-auto items-center justify-center">
         <MenuToggle />
         <div className="flex flex-col">
           <h1 className="flex-row justify-center items-center m-2 p-2">

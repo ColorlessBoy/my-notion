@@ -18,7 +18,7 @@ export default async function DashboardLayout({
         <SidebarWrapper>
           <SidebarContent />
         </SidebarWrapper>
-        <main className="relative flex-1 h-full overflow-y-auto items-center justify-center m-5">
+        <main className="relative flex-1 h-auto overflow-y-auto items-center justify-center m-5">
           <MenuToggle className="sticky top-0 left-0" />
           {children}
         </main>

@@ -82,7 +82,7 @@ export default function BlockNote({
         }}
         theme={"light"}
         style={{
-          display: "flex",
+          width: "100%",
         }}
         slashMenu={false}
       >
