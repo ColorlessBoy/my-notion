@@ -378,6 +378,7 @@ export function FollowCodeBlock({
           onKeyDown={handleKeyDown}
           value={content || ""}
           ref={textareaRef}
+          autoFocus
         />
         <pre
           ref={highlightRef}

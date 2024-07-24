@@ -23,3 +23,5 @@ export const Collapse = forwardRef<HTMLButtonElement, CollapseProps>(
     );
   }
 );
+
+Collapse.displayName = "Collapse";

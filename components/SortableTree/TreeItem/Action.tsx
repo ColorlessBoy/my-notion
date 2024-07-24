@@ -26,3 +26,4 @@ export const Action = forwardRef<HTMLButtonElement, ActionProps>(
     );
   }
 );
+Action.displayName = "Action";

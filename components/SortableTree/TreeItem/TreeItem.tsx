@@ -190,3 +190,5 @@ export const TreeItem = forwardRef<HTMLDivElement, Props>(
     );
   }
 );
+
+TreeItem.displayName = "TreeItem";

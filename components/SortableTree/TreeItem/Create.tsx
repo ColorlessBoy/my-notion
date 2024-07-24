@@ -13,3 +13,5 @@ export const Create = forwardRef<HTMLButtonElement, ActionProps>(
     );
   }
 );
+
+Create.displayName = "Create";

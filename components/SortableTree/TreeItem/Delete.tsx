@@ -13,3 +13,5 @@ export const Delete = forwardRef<HTMLButtonElement, ActionProps>(
     );
   }
 );
+
+Delete.displayName = "Delete";
