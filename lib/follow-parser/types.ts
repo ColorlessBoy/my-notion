@@ -379,9 +379,9 @@ export function getFollowErrorMsg(errorType: ErrorTypes): string {
     case ErrorTypes.EmptyBodyStmt:
       return "不能是空语句";
     case ErrorTypes.EmptyTargetBodyStmt:
-      return "不能是空target，`|- <term1> <term2> <term3>`";
+      return "不能是空目标，`|- <term1> <term2> <term3>`";
     case ErrorTypes.EmptyAssumeBodyStmt:
-      return "不能是空assumption，`-| <term1> <term2> <term3>`";
+      return "不能是空条件，`-| <term1> <term2> <term3>`";
     case ErrorTypes.EmptyDiffBodyStmt:
       return "不能是空diff，`diff (x, y, z) (A, B, C) ...`";
     case ErrorTypes.DupDiff:
