@@ -57,7 +57,7 @@ export default function SpaceIdPage() {
   return (
     <div
       className={cn(
-        "w-auto min-h-full max-w-[960px] flex-col justify-center",
+        "w-auto min-h-full max-w-[1080px] flex-col justify-center",
         "mb-48 mx-auto"
       )}
     >
